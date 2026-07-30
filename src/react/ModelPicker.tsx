@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import { Icon } from "./common";
 import { shortModelName } from "../util";
 import type { ProviderConfig } from "../types";
-import type { ModelInfo } from "../catalog";
+import { CATALOG_BY_ID, providerUsable, type ModelInfo } from "../catalog";
 
 export function ModelPicker({
   providers,
@@ -16,16 +16,17 @@ export function ModelPicker({
   value: string;
   onChange: (ref: string) => void;
 }) {
-  const hasModels = providers.some((p) => modelsFor(p).length > 0);
+  const hasModels = providers.some((p) => providerUsable(p) && modelsFor(p).length > 0);
 
   const open = (e: ReactMouseEvent<HTMLButtonElement>) => {
     const menu = new Menu();
     let any = false;
     for (const p of providers) {
+      if (!providerUsable(p)) continue;
       const models = modelsFor(p);
       if (models.length === 0) continue;
       any = true;
-      const catName = p.name || p.providerId;
+      const catName = p.name || CATALOG_BY_ID[p.providerId]?.name || p.providerId;
       menu.addItem((item) => item.setTitle(catName).setDisabled(true));
       for (const m of models) {
         const ref = `${p.id}:${m.id}`;

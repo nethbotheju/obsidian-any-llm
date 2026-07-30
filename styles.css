@@ -637,3 +637,22 @@
   background: var(--background-modifier-hover);
   color: var(--text-muted);
 }
+
+/* ---------- Settings: OAuth sign-in modal ---------- */
+.ai-chat-oauth-url {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+.ai-chat-oauth-url > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ai-chat-oauth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}

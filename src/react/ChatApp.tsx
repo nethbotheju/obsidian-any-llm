@@ -58,6 +58,7 @@ export function ChatApp() {
 
   const streamAssistant = useCallback(
     async (conv: Conversation) => {
+      await plugin.ensureFreshTokens();
       let model: LanguageModel;
       try {
         model = plugin.registry.languageModel(conv.model);

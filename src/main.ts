@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS } from "./store";
 import { buildRegistry } from "./llm";
 import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
 import { readCache, syncProviders, type ModelCache } from "./sync";
+import { OAUTH_SPECS, isTokenFresh, refreshAccessToken, type StoredToken } from "./auth/oauth";
 import type { PluginSettings, ProviderConfig } from "./types";
 
 export default class AIChatPlugin extends Plugin {
@@ -45,7 +46,6 @@ export default class AIChatPlugin extends Plugin {
 
   getModels(p: ProviderConfig): ModelInfo[] {
     const cat = CATALOG_BY_ID[p.providerId];
-    if (cat?.builtinModels) return cat.builtinModels;
     if (cat?.custom || p.customModels) {
       return (p.customModels ?? []).map((id) => ({
         id,
@@ -82,5 +82,41 @@ export default class AIChatPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.rebuildRegistry();
+  }
+
+  // Refresh any subscription token that is about to expire, then rebuild the
+  // registry so providers carry a fresh access token. Call before sending.
+  async ensureFreshTokens(): Promise<void> {
+    let changed = false;
+    for (const p of this.settings.providers) {
+      const cat = CATALOG_BY_ID[p.providerId];
+      if (cat?.oauthKind && p.token && !isTokenFresh(p.token)) {
+        const spec = OAUTH_SPECS[cat.oauthKind];
+        try {
+          p.token = await refreshAccessToken(spec, p.token.refresh);
+          changed = true;
+        } catch (e) {
+          new Notice(`Session expired for ${cat.name}. Please sign in again. (${e instanceof Error ? e.message : String(e)})`);
+          p.token = undefined;
+          changed = true;
+        }
+      }
+    }
+    if (changed) await this.saveSettings();
+  }
+
+  isSignedIn(p: ProviderConfig): boolean {
+    return !!p.token;
+  }
+
+  setToken(p: ProviderConfig, token: StoredToken): { ok: boolean } {
+    p.token = token;
+    void this.saveSettings();
+    return { ok: true };
+  }
+
+  signOut(p: ProviderConfig): void {
+    p.token = undefined;
+    void this.saveSettings();
   }
 }

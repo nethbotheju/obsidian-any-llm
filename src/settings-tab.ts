@@ -1,6 +1,7 @@
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Modal, Notice, PluginSettingTab, Setting } from "obsidian";
 import type AIChatPlugin from "./main";
-import { CATALOG, CATALOG_BY_ID } from "./catalog";
+import { CATALOG, CATALOG_BY_ID, providerUsable, type CatalogProvider } from "./catalog";
+import { OAUTH_SPECS, loginWithOAuth, type AuthRequest } from "./auth/oauth";
 import type { ProviderConfig } from "./types";
 
 function fmtContext(n: number): string {
@@ -109,9 +110,11 @@ export class ChatSettingTab extends PluginSettingTab {
   private recomputeModelOptions(): void {
     const out: { ref: string; label: string }[] = [];
     for (const p of this.plugin.settings.providers) {
+      if (!providerUsable(p)) continue;
       const models = this.plugin.getModels(p);
+      const catName = p.name || CATALOG_BY_ID[p.providerId]?.name || p.providerId;
       for (const m of models) {
-        out.push({ ref: `${p.id}:${m.id}`, label: `${p.providerId} · ${m.name}` });
+        out.push({ ref: `${p.id}:${m.id}`, label: `${catName} · ${m.name}` });
       }
     }
     this.modelsForPick = out;
@@ -132,7 +135,9 @@ export class ChatSettingTab extends PluginSettingTab {
       }),
     );
 
-    if (cat?.docUrl) {
+    if (cat?.authType === "oauth") {
+      this.renderAuth(p, cat);
+    } else if (cat?.docUrl) {
       new Setting(containerEl)
         .setName("API key")
         .setDesc(`Get a key at ${cat.docUrl}`)
@@ -237,5 +242,111 @@ export class ChatSettingTab extends PluginSettingTab {
     if (models.length > 50) {
       list.createEl("div", { text: `+${models.length - 50} more`, cls: "setting-item-description" });
     }
+  }
+
+  private renderAuth(p: ProviderConfig, cat: CatalogProvider) {
+    const { containerEl } = this;
+    const spec = cat.oauthKind ? OAUTH_SPECS[cat.oauthKind] : undefined;
+    if (!spec) return;
+    const signedIn = this.plugin.isSignedIn(p);
+    const left = signedIn ? this.tokenDesc(p) : "Not signed in.";
+
+    const setting = new Setting(containerEl)
+      .setName("Sign in")
+      .setDesc(left);
+    setting.addButton((b) => {
+      b.setButtonText(signedIn ? "Sign in again" : `Sign in with ${spec.name}`);
+      if (!signedIn) b.setCta();
+      b.onClick(async () => {
+        const btn = b;
+        btn.setButtonText("Opening browser…").setDisabled(true);
+        try {
+          const token = await loginWithOAuth(spec, (auth) => this.promptForRedirect(spec.name, auth));
+          this.plugin.setToken(p, token);
+          new Notice(`Signed in to ${spec.name}`);
+          if (cat.modelsDevId) {
+            try {
+              await this.plugin.syncOne(cat.modelsDevId);
+            } catch {
+              /* models sync can be retried manually */
+            }
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!/cancelled/i.test(msg)) new Notice(`Sign-in failed: ${msg}`);
+        } finally {
+          this.display();
+        }
+      });
+    });
+    if (signedIn) {
+      setting.addButton((b) => {
+        b.setButtonText("Sign out").setWarning();
+        b.onClick(async () => {
+          this.plugin.signOut(p);
+          this.display();
+        });
+      });
+    }
+  }
+
+  private tokenDesc(p: ProviderConfig): string {
+    if (!p.token) return "Not signed in.";
+    const remaining = p.token.expires - Date.now();
+    const ttl = remaining > 0 ? `${Math.round(remaining / 60000)} min left` : "expired";
+    return `Signed in · token ${ttl}.`;
+  }
+
+  private promptForRedirect(name: string, auth: AuthRequest): Promise<string | null> {
+    return new Promise((resolve) => {
+      const modal = new Modal(this.app);
+      modal.titleEl.setText(`Sign in to ${name}`);
+      modal.contentEl.empty();
+      modal.contentEl.createEl("p", {
+        text: "1. Open the login page in your browser. 2. Complete sign-in. 3. Your browser redirects to a localhost URL that will not load — that's expected. 4. Copy that full URL from the address bar and paste it below.",
+      });
+      const urlRow = modal.contentEl.createDiv({ cls: "ai-chat-oauth-url" });
+      urlRow.createEl("span", { cls: "setting-item-description", text: "Login URL:" });
+      const urlCtrl = urlRow.createEl("input", { type: "text" });
+      urlCtrl.value = auth.url;
+      urlCtrl.readOnly = true;
+      urlCtrl.style.width = "100%";
+      const btns = urlRow.createDiv();
+      const openBtn = btns.createEl("button", { text: "Open" });
+      const copyBtn = btns.createEl("button", { text: "Copy" });
+      openBtn.onclick = () => window.open(auth.url, "_blank");
+      copyBtn.onclick = async () => {
+        await navigator.clipboard.writeText(auth.url);
+        copyBtn.setText("Copied");
+        setTimeout(() => copyBtn.setText("Copy"), 1200);
+      };
+
+      const area = modal.contentEl.createEl("textarea");
+      area.placeholder = auth.url.startsWith("http://localhost:1455")
+        ? "http://localhost:1455/auth/callback?code=…&state=…"
+        : "http://localhost:53692/callback?code=…&state=…";
+      area.style.width = "100%";
+      area.style.height = "80px";
+      const actions = modal.contentEl.createDiv({ cls: "ai-chat-oauth-actions" });
+      const cancelBtn = actions.createEl("button", { text: "Cancel" });
+      const okBtn = actions.createEl("button", { text: "Verify" });
+      okBtn.classList.add("mod-cta");
+      let settled = false;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        resolve(v);
+        modal.close();
+      };
+      cancelBtn.onclick = () => done(null);
+      const finish = () => done(area.value.trim() || null);
+      okBtn.onclick = finish;
+      area.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) finish();
+      });
+      modal.onClose = () => done(null);
+      modal.open();
+      setTimeout(() => area.focus(), 50);
+    });
   }
 }

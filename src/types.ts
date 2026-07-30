@@ -1,3 +1,10 @@
+export interface StoredToken {
+  access: string;
+  refresh: string;
+  expires: number;
+  accountId?: string;
+}
+
 export interface ProviderConfig {
   id: string;
   providerId: string;
@@ -5,6 +12,7 @@ export interface ProviderConfig {
   apiKey?: string;
   baseURL?: string;
   customModels?: string[];
+  token?: StoredToken;
 }
 
 export interface ChatMessage {

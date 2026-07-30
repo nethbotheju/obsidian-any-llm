@@ -66,7 +66,7 @@ async function requestUrlFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   return new Response(stream, { status: res.status, headers: responseHeaders });
 }
 
-function makeProvider(p: ProviderConfig) {
+function makeProvider(p: ProviderConfig): unknown | null {
   const fetch = aiFetch as unknown as typeof globalThis.fetch;
   const cat = CATALOG_BY_ID[p.providerId];
   const sdk = cat?.sdk ?? "openai-compatible";
@@ -78,6 +78,28 @@ function makeProvider(p: ProviderConfig) {
       return createAnthropic({ apiKey: p.apiKey, baseURL, fetch });
     case "google":
       return createGoogleGenerativeAI({ apiKey: p.apiKey, baseURL, fetch });
+    case "claude-sub":
+      if (!p.token) return null;
+      return createAnthropic({
+        authToken: p.token.access,
+        headers: { "anthropic-beta": "claude-code-20250219,oauth-2025-04-20" },
+        fetch,
+      });
+    case "codex-sub":
+      if (!p.token) return null;
+      return {
+        languageModel: (modelId: string) =>
+          createOpenAI({
+            baseURL: "https://chatgpt.com/backend-api/codex",
+            apiKey: p.token!.access,
+            headers: {
+              "chatgpt-account-id": p.token!.accountId ?? "",
+              originator: "openai-codex",
+              "OpenAI-Beta": "responses=experimental",
+            },
+            fetch,
+          }).responses(modelId),
+      };
     case "openai-compatible":
     default:
       return createOpenAICompatible({ name: p.id, baseURL: baseURL ?? "", apiKey: p.apiKey, fetch });
@@ -85,11 +107,13 @@ function makeProvider(p: ProviderConfig) {
 }
 
 export function buildRegistry(settings: PluginSettings): ModelResolver {
-  const providers: Record<string, ReturnType<typeof makeProvider>> = {};
+  const providers: Record<string, unknown> = {};
   for (const p of settings.providers) {
-    providers[p.id] = makeProvider(p);
+    const made = makeProvider(p);
+    if (made) providers[p.id] = made;
   }
-  return createProviderRegistry(providers) as unknown as ModelResolver;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createProviderRegistry(providers as any) as unknown as ModelResolver;
 }
 
 export function resolveModel(registry: ModelResolver, ref: string): LanguageModel {
@@ -114,6 +138,9 @@ export async function streamChat(opts: StreamOptions): Promise<string> {
     system: opts.system,
     messages,
     abortSignal: opts.signal,
+    // Codex subscription backend requires store:false + reasoning.encrypted_content;
+    // other providers ignore the openai namespace.
+    providerOptions: { openai: { store: false, include: ["reasoning.encrypted_content"] } },
   });
 
   let full = "";

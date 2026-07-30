@@ -1,4 +1,4 @@
-export type ProviderType = "openai" | "anthropic" | "google" | "openai-compatible";
+export type ProviderType = "openai" | "anthropic" | "google" | "openai-compatible" | "claude-sub" | "codex-sub";
 
 export type AuthType = "apikey" | "oauth";
 
@@ -21,17 +21,8 @@ export interface CatalogProvider {
   docUrl?: string;
   modelsDevId?: string;
   custom?: boolean;
-  builtinModels?: ModelInfo[];
+  oauthKind?: "chatgpt" | "claude";
 }
-
-const textOut = (id: string, name?: string): ModelInfo => ({
-  id,
-  name: name ?? id,
-  modalities: { input: ["text"], output: ["text"] },
-  limit: { context: 0, output: 0, input: 0 },
-  reasoning: false,
-  toolCall: false,
-});
 
 export const CATALOG: CatalogProvider[] = [
   { providerId: "openai", name: "OpenAI", authType: "apikey", sdk: "openai", modelsDevId: "openai", docUrl: "https://platform.openai.com/api-keys" },
@@ -47,6 +38,8 @@ export const CATALOG: CatalogProvider[] = [
   { providerId: "cerebras", name: "Cerebras", authType: "apikey", sdk: "openai-compatible", baseURL: "https://api.cerebras.ai/v1", modelsDevId: "cerebras", docUrl: "https://cloud.cerebras.ai" },
   { providerId: "perplexity", name: "Perplexity", authType: "apikey", sdk: "openai-compatible", baseURL: "https://api.perplexity.ai", modelsDevId: "perplexity", docUrl: "https://www.perplexity.ai/settings/api" },
   { providerId: "opencode-go", name: "OpenCode Go", authType: "apikey", sdk: "openai-compatible", baseURL: "https://opencode.ai/zen/go/v1", modelsDevId: "opencode-go", docUrl: "https://opencode.ai" },
+  { providerId: "chatgpt-sub", name: "ChatGPT (Plus/Pro)", authType: "oauth", sdk: "codex-sub", oauthKind: "chatgpt", modelsDevId: "openai" },
+  { providerId: "claude-sub", name: "Claude (Pro/Max)", authType: "oauth", sdk: "claude-sub", oauthKind: "claude", modelsDevId: "anthropic" },
   { providerId: "ollama", name: "Ollama (local)", authType: "apikey", sdk: "openai-compatible", baseURL: "http://localhost:11434/v1", custom: true, docUrl: "https://ollama.com" },
   { providerId: "custom", name: "Custom (OpenAI-compatible)", authType: "apikey", sdk: "openai-compatible", custom: true },
 ];
@@ -57,4 +50,18 @@ export const CATALOG_BY_ID: Record<string, CatalogProvider> = Object.fromEntries
 
 export function isChatModel(output: string[] | undefined): boolean {
   return !!output && output.includes("text");
+}
+
+export interface UsableProvider {
+  providerId: string;
+  apiKey?: string;
+  token?: { access: string };
+}
+
+// A provider only shows models / is selectable once it has credentials
+// (an API key for apikey providers, or a signed-in token for oauth ones).
+export function providerUsable(p: UsableProvider): boolean {
+  const cat = CATALOG_BY_ID[p.providerId];
+  if (!cat) return false;
+  return cat.authType === "oauth" ? !!p.token : !!p.apiKey;
 }
