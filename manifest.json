@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-ai-chat",
+  "name": "AI Chat",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Multi-provider AI chat assistant in the sidebar. OpenAI, Anthropic, Google, and any OpenAI-compatible endpoint.",
+  "author": "You",
+  "isDesktopOnly": true
+}
