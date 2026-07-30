@@ -3,40 +3,41 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import { Icon } from "./common";
 import { shortModelName } from "../util";
 import type { ProviderConfig } from "../types";
+import type { ModelInfo } from "../catalog";
 
 export function ModelPicker({
   providers,
+  modelsFor,
   value,
   onChange,
 }: {
   providers: ProviderConfig[];
+  modelsFor: (p: ProviderConfig) => ModelInfo[];
   value: string;
   onChange: (ref: string) => void;
 }) {
-  const hasModels = providers.some((p) => p.models.length > 0);
+  const hasModels = providers.some((p) => modelsFor(p).length > 0);
 
   const open = (e: ReactMouseEvent<HTMLButtonElement>) => {
     const menu = new Menu();
     let any = false;
     for (const p of providers) {
-      if (p.models.length === 0) continue;
+      const models = modelsFor(p);
+      if (models.length === 0) continue;
       any = true;
-      menu.addItem((item) => {
-        item.setTitle(p.name || p.id).setDisabled(true);
-      });
-      for (const m of p.models) {
-        const ref = `${p.id}:${m}`;
+      const catName = p.name || p.providerId;
+      menu.addItem((item) => item.setTitle(catName).setDisabled(true));
+      for (const m of models) {
+        const ref = `${p.id}:${m.id}`;
         menu.addItem((item) =>
           item
-            .setTitle(m)
+            .setTitle(m.name)
             .setChecked(ref === value)
             .onClick(() => onChange(ref)),
         );
       }
     }
-    if (!any) {
-      menu.addItem((item) => item.setTitle("No models configured").setDisabled(true));
-    }
+    if (!any) menu.addItem((item) => item.setTitle("No models — sync a provider in Settings").setDisabled(true));
     menu.showAtMouseEvent(e.nativeEvent);
   };
 

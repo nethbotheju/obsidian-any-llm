@@ -602,3 +602,38 @@
 .ai-chat-input::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ---------- Settings: model list ---------- */
+.ai-chat-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.ai-chat-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: var(--font-ui-smaller, 13px);
+}
+.ai-chat-model-row-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-chat-model-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ai-chat-badge {
+  font-size: var(--font-smallest, 11px);
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}

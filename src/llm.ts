@@ -9,6 +9,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { requestUrl } from "obsidian";
 import type { ChatMessage, PluginSettings, ProviderConfig } from "./types";
+import { CATALOG_BY_ID } from "./catalog";
 
 // ponytail: native fetch streams when CORS allows; falls back to Obsidian's
 // requestUrl (bypasses CORS, buffered so no live streaming) on network error.
@@ -67,15 +68,19 @@ async function requestUrlFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 
 function makeProvider(p: ProviderConfig) {
   const fetch = aiFetch as unknown as typeof globalThis.fetch;
-  switch (p.type) {
+  const cat = CATALOG_BY_ID[p.providerId];
+  const sdk = cat?.sdk ?? "openai-compatible";
+  const baseURL = p.baseURL ?? cat?.baseURL;
+  switch (sdk) {
     case "openai":
-      return createOpenAI({ apiKey: p.apiKey, baseURL: p.baseURL, fetch });
+      return createOpenAI({ apiKey: p.apiKey, baseURL, fetch });
     case "anthropic":
-      return createAnthropic({ apiKey: p.apiKey, baseURL: p.baseURL, fetch });
+      return createAnthropic({ apiKey: p.apiKey, baseURL, fetch });
     case "google":
-      return createGoogleGenerativeAI({ apiKey: p.apiKey, baseURL: p.baseURL, fetch });
+      return createGoogleGenerativeAI({ apiKey: p.apiKey, baseURL, fetch });
     case "openai-compatible":
-      return createOpenAICompatible({ name: p.id, baseURL: p.baseURL ?? "", apiKey: p.apiKey, fetch });
+    default:
+      return createOpenAICompatible({ name: p.id, baseURL: baseURL ?? "", apiKey: p.apiKey, fetch });
   }
 }
 

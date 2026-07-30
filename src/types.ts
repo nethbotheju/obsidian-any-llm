@@ -1,12 +1,10 @@
-export type ProviderType = "openai" | "anthropic" | "google" | "openai-compatible";
-
 export interface ProviderConfig {
   id: string;
-  type: ProviderType;
+  providerId: string;
   name?: string;
   apiKey?: string;
   baseURL?: string;
-  models: string[];
+  customModels?: string[];
 }
 
 export interface ChatMessage {

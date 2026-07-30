@@ -225,6 +225,7 @@ export function ChatApp() {
 
       <Composer
         providers={plugin.settings.providers}
+        modelsFor={(p) => plugin.getModels(p)}
         model={active?.model ?? ""}
         onModelChange={(ref) => patchActive({ model: ref })}
         disabled={!active?.model}

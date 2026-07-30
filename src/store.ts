@@ -1,5 +1,5 @@
 import { App, normalizePath } from "obsidian";
-import type { Conversation, PluginSettings } from "./types";
+import type { Conversation, PluginSettings, ProviderConfig } from "./types";
 
 export const DEFAULT_SETTINGS: PluginSettings = {
   providers: [],

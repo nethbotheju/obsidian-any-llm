@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./common";
 import { ModelPicker } from "./ModelPicker";
 import type { ProviderConfig } from "../types";
+import type { ModelInfo } from "../catalog";
 
 export function Composer({
   providers,
+  modelsFor,
   model,
   onModelChange,
   disabled,
@@ -13,6 +15,7 @@ export function Composer({
   onStop,
 }: {
   providers: ProviderConfig[];
+  modelsFor: (p: ProviderConfig) => ModelInfo[];
   model: string;
   onModelChange: (ref: string) => void;
   disabled: boolean;
@@ -73,7 +76,7 @@ export function Composer({
           }}
         />
         <div className="ai-chat-composer-row">
-          <ModelPicker providers={providers} value={model} onChange={onModelChange} />
+          <ModelPicker providers={providers} modelsFor={modelsFor} value={model} onChange={onModelChange} />
           {streaming ? (
             <button className="ai-chat-send is-stop" onClick={onStop} title="Stop">
               <Icon name="square" />
