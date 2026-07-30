@@ -38,7 +38,7 @@ export function Header({
         onClick={onToggleHistory}
         title="History"
       >
-        <Icon name="panel-left" />
+        <Icon name="history" />
       </button>
 
       {editing ? (

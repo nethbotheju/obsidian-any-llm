@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 .ai-chat-title {
@@ -422,7 +422,7 @@
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   overflow: hidden;
   animation: ai-chat-pop 0.12s ease;
 }
@@ -435,7 +435,12 @@
   font-size: var(--font-ui-small);
   font-weight: 500;
   color: var(--text-normal);
-  border-bottom: 1px solid var(--background-modifier-border);
+  background: transparent;
+  border: none !important;
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+  box-shadow: none !important;
+  appearance: none;
+  cursor: pointer;
 }
 .ai-chat-history-new:hover {
   background: var(--background-modifier-hover);
@@ -447,6 +452,9 @@
 .ai-chat-history-list {
   overflow-y: auto;
   padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .ai-chat-history-empty {
   padding: 16px;
@@ -458,15 +466,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 .ai-chat-history-item:hover {
   background: var(--background-modifier-hover);
 }
 .ai-chat-history-item.is-active {
-  background: var(--background-modifier-border);
+  background: var(--background-modifier-hover);
+  border-left: 2px solid var(--interactive-accent);
+  padding-left: 6px;
+}
+.ai-chat-history-item.is-active .ai-chat-history-title {
+  font-weight: 600;
+  color: var(--text-normal);
 }
 .ai-chat-history-text {
   flex: 1 1 auto;
@@ -491,12 +505,17 @@
   justify-content: center;
   border-radius: 6px;
   color: var(--text-muted);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  appearance: none;
+  cursor: pointer;
 }
 .ai-chat-history-item:hover .ai-chat-history-del {
   display: inline-flex;
 }
 .ai-chat-history-del:hover {
-  background: var(--background-modifier-error-hover, rgba(255, 0, 0, 0.1));
+  background: transparent !important;
   color: var(--text-error);
 }
 .ai-chat-history-del svg {
