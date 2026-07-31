@@ -5,8 +5,8 @@ import { DEFAULT_SETTINGS } from "./store";
 import { buildRegistry } from "./llm";
 import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
 import { readCache, readLogoCache, syncLogos, syncProviders, type LogoCache, type ModelCache } from "./sync";
-import { OAUTH_SPECS, isTokenFresh, refreshAccessToken, type StoredToken } from "./auth/oauth";
-import type { PluginSettings, ProviderConfig } from "./types";
+import { OAUTH_SPECS, isTokenFresh, refreshAccessToken } from "./auth/oauth";
+import type { PluginSettings, ProviderConfig, StoredToken } from "./types";
 
 const LOGO_ICON_PREFIX = "models-dev-";
 

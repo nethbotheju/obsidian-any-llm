@@ -8,6 +8,7 @@ import { MessageList, type RenderItem } from "./MessageList";
 import { Composer } from "./Composer";
 import { EmptyState } from "./EmptyState";
 import { MessageState } from "./Message";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { streamChat } from "../llm";
 import { deleteConversation, listConversations, saveConversation } from "../store";
 import type { ChatMessage, Conversation } from "../types";
@@ -221,7 +222,27 @@ export function ChatApp() {
       {items.length === 0 ? (
         <EmptyState />
       ) : (
-        <MessageList items={items} convId={active?.id ?? ""} streaming={streaming} onRetry={regenerate} />
+        <ErrorBoundary
+          key={active?.id}
+          fallback={(reset) => (
+            <div className="ai-chat-turn ai-chat-turn-error">
+              <div className="ai-chat-error">
+                <span>This message couldn&apos;t be rendered.</span>
+              </div>
+              <button
+                className="ai-chat-retry"
+                onClick={() => {
+                  reset();
+                  regenerate();
+                }}
+              >
+                <span>Retry</span>
+              </button>
+            </div>
+          )}
+        >
+          <MessageList items={items} convId={active?.id ?? ""} streaming={streaming} onRetry={regenerate} />
+        </ErrorBoundary>
       )}
 
       <Composer

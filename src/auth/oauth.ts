@@ -1,11 +1,5 @@
 import { requestUrl } from "obsidian";
-
-export interface StoredToken {
-  access: string;
-  refresh: string;
-  expires: number;
-  accountId?: string;
-}
+import type { StoredToken } from "../types";
 
 export interface OAuthSpec {
   name: string;
