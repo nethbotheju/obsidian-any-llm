@@ -1,21 +1,26 @@
-import { Notice, Plugin } from "obsidian";
+import { addIcon, Notice, Plugin } from "obsidian";
 import { ChatView, VIEW_TYPE_CHAT } from "./ChatView";
 import { ChatSettingTab } from "./settings-tab";
 import { DEFAULT_SETTINGS } from "./store";
 import { buildRegistry } from "./llm";
 import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
-import { readCache, syncProviders, type ModelCache } from "./sync";
+import { readCache, readLogoCache, syncLogos, syncProviders, type LogoCache, type ModelCache } from "./sync";
 import { OAUTH_SPECS, isTokenFresh, refreshAccessToken, type StoredToken } from "./auth/oauth";
 import type { PluginSettings, ProviderConfig } from "./types";
+
+const LOGO_ICON_PREFIX = "models-dev-";
 
 export default class AIChatPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
   registry = buildRegistry(DEFAULT_SETTINGS);
   modelCache: ModelCache = {};
+  logoCache: LogoCache = {};
 
   async onload() {
     await this.loadSettings();
     this.modelCache = await readCache(this.app, this.manifest.id);
+    this.logoCache = await readLogoCache(this.app, this.manifest.id);
+    this.registerLogos();
     this.rebuildRegistry();
 
     this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
@@ -28,6 +33,40 @@ export default class AIChatPlugin extends Plugin {
     });
 
     this.addSettingTab(new ChatSettingTab(this.app, this));
+
+    // Fetch any provider logos still missing so icons show without a manual Sync.
+    void this.refreshLogos();
+  }
+
+  private registerLogos(): void {
+    for (const [id, entry] of Object.entries(this.logoCache)) {
+      addIcon(`${LOGO_ICON_PREFIX}${id}`, entry.svg);
+    }
+  }
+
+  private logoIds(): string[] {
+    const ids = this.settings.providers
+      .map((p) => CATALOG_BY_ID[p.providerId]?.modelsDevId)
+      .filter((id): id is string => !!id);
+    return [...new Set(ids)];
+  }
+
+  private async refreshLogos(): Promise<void> {
+    const ids = this.logoIds();
+    if (ids.length === 0) return;
+    const before = Object.keys(this.logoCache).length;
+    this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, ids);
+    if (Object.keys(this.logoCache).length !== before) this.registerLogos();
+  }
+
+  // Returns the Obsidian icon name to use for a provider.
+  // Prefers the cached models.dev logo; falls back to a lucide icon when no
+  // logo has been fetched yet.
+  providerIcon(providerId: string): string {
+    const cat = CATALOG_BY_ID[providerId];
+    const mid = cat?.modelsDevId;
+    if (mid && this.logoCache[mid]) return `${LOGO_ICON_PREFIX}${mid}`;
+    return "bot";
   }
 
   async activateView() {
@@ -60,19 +99,20 @@ export default class AIChatPlugin extends Plugin {
   }
 
   async syncAll(): Promise<void> {
-    const ids = this.settings.providers
-      .map((p) => CATALOG_BY_ID[p.providerId]?.modelsDevId)
-      .filter((id): id is string => !!id);
-    const unique = [...new Set(ids)];
+    const unique = this.logoIds();
     if (unique.length === 0) {
       new Notice("Add a provider first, then sync.");
       return;
     }
     this.modelCache = await syncProviders(this.app, this.manifest.id, this.modelCache, unique);
+    this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, unique);
+    this.registerLogos();
   }
 
   async syncOne(modelsDevId: string): Promise<void> {
     this.modelCache = await syncProviders(this.app, this.manifest.id, this.modelCache, [modelsDevId]);
+    this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, [modelsDevId]);
+    this.registerLogos();
   }
 
   async loadSettings() {

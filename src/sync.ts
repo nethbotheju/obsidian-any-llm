@@ -2,6 +2,7 @@ import { App, normalizePath, requestUrl } from "obsidian";
 import type { ModelInfo } from "./catalog";
 
 const MODELS_DEV_API = "https://models.dev/api.json";
+const MODELS_DEV_LOGO = (id: string) => `https://models.dev/logos/${id}.svg`;
 
 interface ApiModel {
   id: string;
@@ -42,6 +43,68 @@ export async function readCache(app: App, manifestId: string): Promise<ModelCach
 
 export async function writeCache(app: App, manifestId: string, cache: ModelCache): Promise<void> {
   await app.vault.adapter.write(cachePath(manifestId), JSON.stringify(cache, null, 2));
+}
+
+export interface LogoEntry {
+  svg: string;
+  syncedAt: string;
+}
+
+export type LogoCache = Record<string, LogoEntry>;
+
+export function logoCachePath(manifestId: string): string {
+  return normalizePath(`.obsidian/plugins/${manifestId}/logos-cache.json`);
+}
+
+export async function readLogoCache(app: App, manifestId: string): Promise<LogoCache> {
+  const path = logoCachePath(manifestId);
+  if (!(await app.vault.adapter.exists(path))) return {};
+  try {
+    return JSON.parse(await app.vault.adapter.read(path)) as LogoCache;
+  } catch {
+    return {};
+  }
+}
+
+export async function writeLogoCache(app: App, manifestId: string, cache: LogoCache): Promise<void> {
+  await app.vault.adapter.write(logoCachePath(manifestId), JSON.stringify(cache, null, 2));
+}
+
+function cleanSvg(raw: string): string {
+  const start = raw.indexOf("<svg");
+  if (start < 0) return "";
+  let svg = raw.slice(start);
+  svg = svg.replace(/<svg([^>]*)>/, (_m, attrs: string) => {
+    const stripped = attrs.replace(/\s(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*')/g, "");
+    return `<svg${stripped}>`;
+  });
+  return svg;
+}
+
+export async function syncLogos(
+  app: App,
+  manifestId: string,
+  cache: LogoCache,
+  ids: string[],
+): Promise<LogoCache> {
+  const missing = ids.filter((id) => id && !cache[id]);
+  if (missing.length === 0) return cache;
+  const next: LogoCache = { ...cache };
+  const now = new Date().toISOString();
+  await Promise.all(
+    missing.map(async (id) => {
+      try {
+        const res = await requestUrl({ url: MODELS_DEV_LOGO(encodeURIComponent(id)), method: "GET", throw: false });
+        if (res.status >= 400) return;
+        const svg = cleanSvg(res.text as string);
+        if (svg.startsWith("<svg")) next[id] = { svg, syncedAt: now };
+      } catch {
+        // leave absent -> caller falls back to a lucide icon
+      }
+    }),
+  );
+  if (Object.keys(next).length !== Object.keys(cache).length) await writeLogoCache(app, manifestId, next);
+  return next;
 }
 
 function toModelInfo(id: string, m: ApiModel): ModelInfo {
