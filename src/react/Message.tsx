@@ -47,13 +47,18 @@ function UserContent({ msg }: { msg: ChatMessage }) {
 export function Message({
   msg,
   state,
-  onRetry,
 }: {
   msg: ChatMessage;
   state: MessageState;
-  onRetry: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (await copyText(msg.content)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    }
+  };
 
   if (msg.role === "user") {
     return (
@@ -75,21 +80,6 @@ export function Message({
     );
   }
 
-  if (msg.error) {
-    return (
-      <div className="ai-chat-turn ai-chat-turn-error">
-        <div className="ai-chat-error">
-          <Icon name="alert-triangle" />
-          <span>{msg.content}</span>
-        </div>
-        <button className="ai-chat-retry" onClick={onRetry}>
-          <Icon name="refresh-cw" />
-          <span>Retry</span>
-        </button>
-      </div>
-    );
-  }
-
   if (state === "streaming") {
     return (
       <div className="ai-chat-turn ai-chat-turn-assistant">
@@ -101,17 +91,10 @@ export function Message({
     );
   }
 
-  const copy = async () => {
-    if (await copyText(msg.content)) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    }
-  };
-
   return (
     <div className="ai-chat-turn ai-chat-turn-assistant ai-chat-turn-copyable">
       <Markdown content={msg.content} />
-      <button className="ai-chat-copy" onClick={copy} title="Copy">
+      <button type="button" className="ai-chat-copy" onClick={() => void copy()} title="Copy">
         <Icon name={copied ? "check" : "copy"} />
       </button>
     </div>

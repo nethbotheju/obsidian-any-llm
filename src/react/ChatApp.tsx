@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Notice } from "obsidian";
 import type { LanguageModel } from "ai";
-import { useServices } from "./common";
+import { copyText, Icon, useServices } from "./common";
 import { Header } from "./Header";
 import { HistoryPanel } from "./HistoryPanel";
 import { MessageList, type RenderItem } from "./MessageList";
@@ -9,7 +9,7 @@ import { Composer } from "./Composer";
 import { EmptyState } from "./EmptyState";
 import { MessageState } from "./Message";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { streamChat } from "../llm";
+import { describeChatError, streamChat } from "../llm";
 import { deleteConversation, listConversations, saveConversation } from "../store";
 import type { ChatMessage, Conversation } from "../types";
 import { serializeFiles } from "../attachments";
@@ -35,6 +35,8 @@ export function ChatApp() {
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -60,48 +62,46 @@ export function ChatApp() {
 
   const streamAssistant = useCallback(
     async (conv: Conversation) => {
-      await plugin.ensureFreshTokens();
-      let model: LanguageModel;
-      try {
-        model = plugin.registry.languageModel(conv.model);
-      } catch {
-        new Notice("Invalid model. Pick one in Settings.");
-        return;
-      }
-      setStreaming(true);
-      setStreamText("");
       const controller = new AbortController();
       abortRef.current = controller;
-      let accumulated = "";
+      setStreaming(true);
+      setStreamText("");
+      setError(null);
 
       try {
+        await plugin.ensureFreshTokens();
+        let model: LanguageModel;
+        try {
+          model = plugin.registry.languageModel(conv.model);
+        } catch {
+          throw new Error("The selected model is no longer available. Pick another model in Settings.");
+        }
+
         const full = await streamChat({
           model,
           system: conv.systemPrompt,
           messages: conv.messages,
           signal: controller.signal,
           onDelta: (t) => {
-            accumulated = t;
             setStreamText(t);
           },
         });
         const next: Conversation = {
           ...conv,
-          messages: [...conv.messages, { role: "assistant", content: full || accumulated, model: conv.model }],
+          messages: [...conv.messages, { role: "assistant", content: full, model: conv.model }],
           updatedAt: nowISO(),
         };
         setActive(next);
-        await persist(next);
+        try {
+          await persist(next);
+        } catch (err) {
+          console.error("ai-chat: could not save response", err);
+          new Notice(`Could not save conversation: ${err instanceof Error ? err.message : String(err)}`);
+        }
       } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        const next: Conversation = {
-          ...conv,
-          messages: [...conv.messages, { role: "assistant", content: reason, model: conv.model, error: true }],
-          updatedAt: nowISO(),
-        };
-        setActive(next);
-        await persist(next);
-        if (!accumulated) new Notice(reason);
+        if (controller.signal.aborted) return;
+        setError(describeChatError(err));
+        console.error("ai-chat: generation failed", { model: conv.model, error: err });
       } finally {
         setStreaming(false);
         setStreamText("");
@@ -157,8 +157,16 @@ export function ChatApp() {
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
+  const copyError = useCallback(async () => {
+    if (error && (await copyText(error))) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    }
+  }, [error]);
+
   const startNew = useCallback(() => {
     if (streaming) return;
+    setError(null);
     setActive(newConversation(active?.model || plugin.settings.defaultModel, active?.systemPrompt || plugin.settings.defaultSystemPrompt));
   }, [streaming, active, plugin.settings.defaultModel, plugin.settings.defaultSystemPrompt]);
 
@@ -166,6 +174,7 @@ export function ChatApp() {
     (id: string) => {
       if (streaming) return;
       setHistoryOpen(false);
+      setError(null);
       const conv = conversations.find((c) => c.id === id);
       if (conv) setActive(conv);
     },
@@ -244,24 +253,41 @@ export function ChatApp() {
         <ErrorBoundary
           key={active?.id}
           fallback={(reset) => (
-            <div className="ai-chat-turn ai-chat-turn-error">
-              <div className="ai-chat-error">
-                <span>This message couldn&apos;t be rendered.</span>
-              </div>
+            <div className="ai-chat-error-banner" role="alert" style={{ margin: "0 14px 8px" }}>
+              <Icon name="alert-triangle" className="ai-chat-error-banner-icon" />
+              <span className="ai-chat-error-banner-msg">This conversation couldn&apos;t be rendered.</span>
               <button
-                className="ai-chat-retry"
+                type="button"
+                className="ai-chat-error-banner-btn"
                 onClick={() => {
                   reset();
                   regenerate();
                 }}
+                title="Retry"
               >
-                <span>Retry</span>
+                <Icon name="refresh-cw" />
               </button>
             </div>
           )}
         >
-          <MessageList items={items} convId={active?.id ?? ""} streaming={streaming} onRetry={regenerate} />
+          <MessageList items={items} convId={active?.id ?? ""} streaming={streaming} />
         </ErrorBoundary>
+      )}
+
+      {error && (
+        <div className="ai-chat-error-banner" role="alert">
+          <Icon name="alert-triangle" className="ai-chat-error-banner-icon" />
+          <span className="ai-chat-error-banner-msg">{error}</span>
+          <button type="button" className="ai-chat-error-banner-btn" onClick={() => void copyError()} title="Copy error">
+            <Icon name={copied ? "check" : "copy"} />
+          </button>
+          <button type="button" className="ai-chat-error-banner-btn" onClick={() => void regenerate()} title="Retry">
+            <Icon name="refresh-cw" />
+          </button>
+          <button type="button" className="ai-chat-error-banner-btn" onClick={() => setError(null)} title="Dismiss">
+            <Icon name="x" />
+          </button>
+        </div>
       )}
 
       <Composer

@@ -1,4 +1,13 @@
-import { createProviderRegistry, streamText, type FilePart, type LanguageModel, type ModelMessage, type TextPart } from "ai";
+import {
+  APICallError,
+  createProviderRegistry,
+  RetryError,
+  streamText,
+  type FilePart,
+  type LanguageModel,
+  type ModelMessage,
+  type TextPart,
+} from "ai";
 
 export interface ModelResolver {
   languageModel(modelId: string): LanguageModel;
@@ -17,7 +26,8 @@ export async function aiFetch(input: RequestInfo | URL, init?: RequestInit): Pro
   if (typeof fetch === "function") {
     try {
       return await fetch(input as RequestInfo, init);
-    } catch {
+    } catch (error) {
+      if (init?.signal?.aborted) throw error;
       // CORS/network failure -> buffered fallback below
     }
   }
@@ -128,6 +138,45 @@ export interface StreamOptions {
   signal?: AbortSignal;
 }
 
+function findApiError(error: unknown): APICallError | undefined {
+  let current: unknown = error;
+  for (let i = 0; i < 10 && current; i++) {
+    if (APICallError.isInstance(current)) return current;
+    current =
+      RetryError.isInstance(current) ? current.lastError
+      : current instanceof Error ? (current as Error & { cause?: unknown }).cause
+      : undefined;
+  }
+  return undefined;
+}
+
+const STATUS_HINTS: Record<number, string> = {
+  401: "Authentication failed. Check the provider API key or sign in again.",
+  403: "Authentication failed. Check the provider API key or sign in again.",
+  404: "The model or endpoint was not found. Check the selected model and base URL.",
+  408: "The provider timed out. Try again or choose another model.",
+  429: "The provider rate limit was reached. Try again later.",
+  504: "The provider timed out. Try again or choose another model.",
+};
+
+// Friendly single-line message. The full error (status, provider response body,
+// stack) is logged via console.error at the call site for real debugging.
+export function describeChatError(error: unknown): string {
+  const apiError = findApiError(error);
+  const status = apiError?.statusCode;
+  const raw = (error instanceof Error && error.message) || String(error);
+
+  if (status && STATUS_HINTS[status]) return STATUS_HINTS[status];
+  if (status && status >= 500) return "The provider is unavailable. Try again in a moment.";
+  if (/empty|no output|without returning/i.test(raw)) {
+    return "The provider ended the request without returning a response. Try again or choose another model.";
+  }
+  if (/failed to fetch|network|cors|econnrefused|enotfound|etimedout/i.test(raw)) {
+    return "The provider could not be reached. Check your connection and base URL.";
+  }
+  return raw || "Unknown error.";
+}
+
 function decodeText(data: string): string {
   const binary = atob(data);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
@@ -166,11 +215,15 @@ export function toModelMessages(messages: ChatMessage[]): ModelMessage[] {
 export async function streamChat(opts: StreamOptions): Promise<string> {
   const messages = toModelMessages(opts.messages);
 
+  let streamError: unknown;
   const result = streamText({
     model: opts.model,
     system: opts.system,
     messages,
     abortSignal: opts.signal,
+    onError: ({ error }) => {
+      streamError ??= error;
+    },
     // Codex subscription backend requires store:false + reasoning.encrypted_content;
     // other providers ignore the openai namespace.
     providerOptions: { openai: { store: false, include: ["reasoning.encrypted_content"] } },
@@ -181,5 +234,7 @@ export async function streamChat(opts: StreamOptions): Promise<string> {
     full += delta;
     opts.onDelta(full);
   }
+  if (streamError !== undefined) throw streamError;
+  if (!full.trim()) throw new Error("The model returned an empty response.");
   return full;
 }
