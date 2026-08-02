@@ -1,4 +1,4 @@
-import { createProviderRegistry, streamText, type LanguageModel } from "ai";
+import { createProviderRegistry, streamText, type FilePart, type LanguageModel, type ModelMessage, type TextPart } from "ai";
 
 export interface ModelResolver {
   languageModel(modelId: string): LanguageModel;
@@ -8,7 +8,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { requestUrl } from "obsidian";
-import type { ChatMessage, PluginSettings, ProviderConfig } from "./types";
+import type { ChatAttachment, ChatMessage, PluginSettings, ProviderConfig } from "./types";
 import { CATALOG_BY_ID } from "./catalog";
 
 // ponytail: native fetch streams when CORS allows; falls back to Obsidian's
@@ -128,10 +128,43 @@ export interface StreamOptions {
   signal?: AbortSignal;
 }
 
-export async function streamChat(opts: StreamOptions): Promise<string> {
-  const messages = opts.messages
+function decodeText(data: string): string {
+  const binary = atob(data);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function attachmentPart(attachment: ChatAttachment): TextPart | FilePart {
+  if (attachment.modality === "text") {
+    return {
+      type: "text",
+      text: `\n\n[Attached file: ${attachment.filename}]\n${decodeText(attachment.data)}\n[End attached file]`,
+    };
+  }
+  return {
+    type: "file",
+    mediaType: attachment.mediaType,
+    filename: attachment.filename,
+    data: { type: "data", data: attachment.data },
+  };
+}
+
+export function toModelMessages(messages: ChatMessage[]): ModelMessage[] {
+  return messages
     .filter((m) => m.role !== "system")
-    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+    .map((m) => {
+      if (m.role !== "user" || !m.attachments?.length) {
+        return { role: m.role as "user" | "assistant", content: m.content };
+      }
+      const content: Array<TextPart | FilePart> = [];
+      if (m.content) content.push({ type: "text", text: m.content });
+      content.push(...m.attachments.map(attachmentPart));
+      return { role: "user", content };
+    });
+}
+
+export async function streamChat(opts: StreamOptions): Promise<string> {
+  const messages = toModelMessages(opts.messages);
 
   const result = streamText({
     model: opts.model,

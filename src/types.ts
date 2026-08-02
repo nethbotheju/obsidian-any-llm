@@ -15,9 +15,21 @@ export interface ProviderConfig {
   token?: StoredToken;
 }
 
+export type AttachmentModality = "text" | "image" | "audio" | "video" | "pdf";
+
+export interface ChatAttachment {
+  id: string;
+  filename: string;
+  mediaType: string;
+  modality: AttachmentModality;
+  size: number;
+  data: string;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
+  attachments?: ChatAttachment[];
   model?: string;
   error?: boolean;
 }

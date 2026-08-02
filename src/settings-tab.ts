@@ -238,6 +238,9 @@ export class ChatSettingTab extends PluginSettingTab {
       if (m.reasoning) badges.createEl("span", { text: "reason", cls: "ai-chat-badge" });
       if (m.toolCall) badges.createEl("span", { text: "tools", cls: "ai-chat-badge" });
       if (m.attachment) badges.createEl("span", { text: "files", cls: "ai-chat-badge" });
+      for (const modality of m.modalities.input.filter((value) => value !== "text")) {
+        badges.createEl("span", { text: modality, cls: "ai-chat-badge" });
+      }
     }
     if (models.length > 50) {
       list.createEl("div", { text: `+${models.length - 50} more`, cls: "setting-item-description" });

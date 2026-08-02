@@ -13,6 +13,7 @@
 
 .ai-chat-root {
   position: relative;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -374,7 +375,7 @@
 }
 
 .ai-chat-send {
-  margin-left: auto;
+  margin-left: 0;
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
@@ -672,6 +673,7 @@
 /* ---------- Model picker panel ---------- */
 .ai-chat-modelpicker {
   position: relative;
+  margin-left: auto;
   display: inline-flex;
   max-width: 75%;
   min-width: 0;
@@ -679,7 +681,9 @@
 .ai-chat-modelpanel {
   position: absolute;
   bottom: calc(100% + 6px);
-  left: 0;
+  left: auto;
+  right: 0;
+  box-sizing: border-box;
   width: 320px;
   max-width: calc(100vw - 48px);
   z-index: 30;
@@ -765,4 +769,105 @@
 }
 .ai-chat-modelpanel-check {
   flex: 0 0 auto;
+}
+
+.ai-chat-pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 2px 4px 6px;
+}
+.ai-chat-pending-attachment,
+.ai-chat-message-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+.ai-chat-pending-attachment > span,
+.ai-chat-message-file > span {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-chat-pending-attachment small,
+.ai-chat-message-file small {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.ai-chat-attachment-remove,
+.ai-chat-message-file button,
+.ai-chat-attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--text-muted);
+}
+.ai-chat-attachment-remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+}
+.ai-chat-attachment-remove:hover,
+.ai-chat-message-file button:hover,
+.ai-chat-attach:hover:not(:disabled) {
+  color: var(--text-normal);
+}
+.ai-chat-attach {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+}
+.ai-chat-attach svg {
+  width: 16px;
+  height: 16px;
+}
+.ai-chat-message-attachment {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.ai-chat-message-image,
+.ai-chat-message-video {
+  display: block;
+  max-width: 280px;
+  max-height: 220px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.ai-chat-message-attachment audio {
+  max-width: 260px;
+  height: 32px;
+}
+.ai-chat-message-file {
+  align-self: flex-start;
+  background: var(--background-primary);
+}
+.ai-chat-message-file button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+.ai-chat-message-file button svg {
+  width: 13px;
+  height: 13px;
+}
+.ai-chat-user-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai-chat-bubble-user .ai-chat-message-attachment {
+  max-width: 280px;
 }
