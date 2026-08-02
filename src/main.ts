@@ -6,7 +6,7 @@ import { buildRegistry } from "./llm";
 import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
 import { readCache, readLogoCache, syncLogos, syncProviders, type LogoCache, type ModelCache } from "./sync";
 import { OAUTH_SPECS, isTokenFresh, refreshAccessToken } from "./auth/oauth";
-import type { PluginSettings, ProviderConfig, StoredToken } from "./types";
+import { parseModelRef, type PluginSettings, type ProviderConfig, type StoredToken } from "./types";
 
 const LOGO_ICON_PREFIX = "models-dev-";
 
@@ -96,6 +96,12 @@ export default class AIChatPlugin extends Plugin {
       }));
     }
     return this.modelCache[cat?.modelsDevId ?? p.providerId]?.models ?? [];
+  }
+
+  getModelInfo(ref: string): ModelInfo | undefined {
+    const { providerId, modelId } = parseModelRef(ref);
+    const provider = this.settings.providers.find((p) => p.id === providerId);
+    return provider ? this.getModels(provider).find((m) => m.id === modelId) : undefined;
   }
 
   async syncAll(): Promise<void> {

@@ -12,6 +12,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { streamChat } from "../llm";
 import { deleteConversation, listConversations, saveConversation } from "../store";
 import type { ChatMessage, Conversation } from "../types";
+import { serializeFiles } from "../attachments";
 import { newId, nowISO, titleFrom } from "../util";
 
 function newConversation(model: string, systemPrompt: string): Conversation {
@@ -111,19 +112,37 @@ export function ChatApp() {
   );
 
   const send = useCallback(
-    (text: string) => {
-      if (!active || !text.trim() || streaming) return;
-      const userMsg: ChatMessage = { role: "user", content: text };
+    async (text: string, files: File[]): Promise<boolean> => {
+      if (!active || (!text.trim() && files.length === 0) || streaming) return false;
+      let attachments;
+      try {
+        attachments = await serializeFiles(files, plugin.getModelInfo(active.model));
+      } catch (err) {
+        new Notice(err instanceof Error ? err.message : String(err));
+        return false;
+      }
+      const userMsg: ChatMessage = {
+        role: "user",
+        content: text,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      };
       const conv: Conversation = {
         ...active,
-        title: active.messages.length === 0 ? titleFrom(text) : active.title,
+        title: active.messages.length === 0 ? titleFrom(text || attachments[0]?.filename || "New chat") : active.title,
         messages: [...active.messages, userMsg],
         updatedAt: nowISO(),
       };
       setActive(conv);
+      try {
+        await persist(conv);
+      } catch (err) {
+        new Notice(`Could not save conversation: ${err instanceof Error ? err.message : String(err)}`);
+        return false;
+      }
       void streamAssistant(conv);
+      return true;
     },
-    [active, streaming, streamAssistant],
+    [active, persist, plugin, streaming, streamAssistant],
   );
 
   const regenerate = useCallback(() => {
@@ -249,6 +268,7 @@ export function ChatApp() {
         providers={plugin.settings.providers}
         modelsFor={(p) => plugin.getModels(p)}
         model={active?.model ?? ""}
+        modelInfo={active ? plugin.getModelInfo(active.model) : undefined}
         onModelChange={(ref) => patchActive({ model: ref })}
         disabled={!active?.model}
         streaming={streaming}

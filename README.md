@@ -10,6 +10,10 @@ Configured in **Settings → AI Chat**. A curated catalog ships with every commo
 - **Subscription sign-in (OAuth)** — use your **ChatGPT Plus/Pro** or **Claude Pro/Max** account directly. No API key needed.
 - **Local / custom** — Ollama (`http://localhost:11434/v1`), LM Studio, or any endpoint that speaks the OpenAI Chat Completions API. Enter a Base URL and list your model ids manually.
 
+## Attachments
+
+Models advertise supported input types through models.dev. The composer enables only the attachment types supported by the selected model. Images, PDFs, audio, video, and text files are stored as base64 data in the conversation JSON so conversations remain portable. Attachments are limited to 20 MB per file and 50 MB per message.
+
 ## Conversations
 
 Each conversation is persisted as JSON at:
