@@ -187,6 +187,7 @@ export function ChatApp() {
       const remaining = conversations.filter((c) => c.id !== id);
       setConversations(remaining);
       if (active?.id === id) {
+        setError(null);
         setActive(remaining[0] ?? newConversation(plugin.settings.defaultModel, plugin.settings.defaultSystemPrompt));
       }
     },
