@@ -31,7 +31,6 @@ export interface ChatMessage {
   content: string;
   attachments?: ChatAttachment[];
   model?: string;
-  error?: boolean;
 }
 
 export interface Conversation {

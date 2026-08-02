@@ -12,12 +12,10 @@ export function MessageList({
   items,
   convId,
   streaming,
-  onRetry,
 }: {
   items: RenderItem[];
   convId: string;
   streaming: boolean;
-  onRetry: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
@@ -47,7 +45,7 @@ export function MessageList({
   return (
     <div className="ai-chat-messages" ref={scrollRef} onScroll={onScroll}>
       {items.map((it) => (
-        <Message key={it.key} msg={it.msg} state={it.state} onRetry={onRetry} />
+        <Message key={it.key} msg={it.msg} state={it.state} />
       ))}
     </div>
   );
