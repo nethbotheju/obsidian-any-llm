@@ -80,7 +80,7 @@ function makeProvider(p: ProviderConfig): unknown | null {
   const fetch = aiFetch as unknown as typeof globalThis.fetch;
   const cat = CATALOG_BY_ID[p.providerId];
   const sdk = cat?.sdk ?? "openai-compatible";
-  const baseURL = p.baseURL ?? cat?.baseURL;
+  const baseURL = p.baseURL || cat?.baseURL;
   switch (sdk) {
     case "openai":
       return createOpenAI({ apiKey: p.apiKey, baseURL, fetch });
