@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Notice } from "obsidian";
 import type { TFile } from "obsidian";
 import { Icon, useServices } from "./common";
@@ -14,7 +14,7 @@ import {
   supportedAttachmentModalities,
   type PendingAttachment,
 } from "../attachments";
-import { isReferenceable, parseObsidianFileUri, referenceableFiles, resolveLinkPath } from "../refs";
+import { findRefs, isReferenceable, parseObsidianFileUri, referenceableFiles, resolveLinkPath, resolveRef } from "../refs";
 
 const BINARY_MIME: Record<string, string> = {
   png: "image/png",
@@ -72,6 +72,7 @@ export function Composer({
   const [submitting, setSubmitting] = useState(false);
   const [picker, setPicker] = useState({ open: false, anchor: 0, query: "", selected: 0 });
   const ref = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -107,13 +108,30 @@ export function Composer({
 
   // ponytail: refilter each render; getFiles() is Obsidian's in-memory list so
   // this is cheap. Memoize if a vault > ~20k files measures slow.
-  const refFiles = referenceableFiles(app);
+  const refFiles = picker.open ? referenceableFiles(app) : [];
   const filtered = picker.open
     ? refFiles
         .filter((f) => f.path.toLowerCase().includes(picker.query.trim().toLowerCase()))
         .slice(0, 200)
     : [];
   const selected = filtered.length ? Math.min(picker.selected, filtered.length - 1) : 0;
+
+  // mirror overlay: renders the same text with resolved references in the
+  // accent color. The textarea sits on top with transparent text + visible
+  // caret; scroll is synced so wraps stay aligned.
+  const mirrorNodes: ReactNode[] = (() => {
+    const out: ReactNode[] = [];
+    const refs = findRefs(value);
+    let cursor = 0;
+    for (const r of refs) {
+      if (r.start > cursor) out.push(value.slice(cursor, r.start));
+      const slice = value.slice(r.start, r.end);
+      out.push(resolveRef(app, r.path) ? <span className="ai-chat-input-ref" key={r.start}>{slice}</span> : slice);
+      cursor = r.end;
+    }
+    if (cursor < value.length) out.push(value.slice(cursor));
+    return out;
+  })();
 
   const syncPicker = (text: string, caret: number) => {
     const trig = detectTrigger(text, caret);
@@ -250,10 +268,14 @@ export function Composer({
             ))}
           </div>
         )}
-        <textarea
-          ref={ref}
-          className="ai-chat-input"
-          rows={1}
+        <div className="ai-chat-input-wrap">
+          <div ref={mirrorRef} className="ai-chat-input ai-chat-input-mirror" aria-hidden="true">
+            {mirrorNodes}
+          </div>
+          <textarea
+            ref={ref}
+            className="ai-chat-input ai-chat-input-real"
+            rows={1}
           placeholder={disabled ? "Configure a provider & model in Settings…" : "Ask anything… (type @ to reference a note)"}
           value={value}
           disabled={disabled || submitting}
@@ -270,7 +292,36 @@ export function Composer({
             syncPicker(e.target.value, e.target.selectionStart ?? e.target.value.length);
           }}
           onSelect={syncFromEl}
+          onScroll={(e) => {
+            if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+          }}
           onKeyDown={(e) => {
+            if (e.key === "Backspace") {
+              const el = ref.current;
+              if (el && el.selectionStart === el.selectionEnd) {
+                const caret = el.selectionStart;
+                let target: { start: number; end: number } | null = null;
+                for (const r of findRefs(value)) {
+                  if (r.end === caret && resolveRef(app, r.path)) {
+                    target = r;
+                    break;
+                  }
+                }
+                if (target) {
+                  const start = target.start;
+                  e.preventDefault();
+                  const next = value.slice(0, start) + value.slice(target.end);
+                  setValue(next);
+                  syncPicker(next, start);
+                  requestAnimationFrame(() => {
+                    el.setSelectionRange(start, start);
+                    grow();
+                    if (mirrorRef.current) mirrorRef.current.scrollTop = el.scrollTop;
+                  });
+                  return;
+                }
+              }
+            }
             if (picker.open) {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
@@ -300,6 +351,7 @@ export function Composer({
             }
           }}
         />
+        </div>
         <div className="ai-chat-composer-row">
           {canAttach && (
             <>

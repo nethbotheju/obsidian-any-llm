@@ -941,22 +941,50 @@
 /* ---------- Inline file references ---------- */
 .ai-chat-ref {
   display: inline;
-  margin: 0 1px;
-  padding: 0 3px;
+  padding: 0;
   border: none !important;
-  background: var(--background-modifier-hover) !important;
+  background: transparent !important;
   color: var(--text-accent) !important;
   font: inherit;
-  border-radius: 4px;
   cursor: pointer;
   text-decoration: none;
 }
 .ai-chat-ref:hover {
-  background: var(--background-modifier-border) !important;
   text-decoration: underline;
 }
 .ai-chat-ref-broken {
   color: var(--text-error) !important;
   text-decoration: line-through;
   cursor: not-allowed;
+}
+
+/* ---------- Composer: inline reference highlight overlay ---------- */
+.ai-chat-input-wrap {
+  position: relative;
+}
+.ai-chat-input-mirror {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  z-index: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  color: var(--text-normal);
+}
+/* invisible but space-reserving scrollbar so the mirror reserves the same
+   width as the real textarea when it scrolls, keeping wraps aligned */
+.ai-chat-input-mirror::-webkit-scrollbar-thumb,
+.ai-chat-input-mirror::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ai-chat-input-real {
+  position: relative;
+  z-index: 1;
+  color: transparent !important;
+  caret-color: var(--text-normal);
+}
+.ai-chat-input-ref {
+  color: var(--text-accent);
 }
