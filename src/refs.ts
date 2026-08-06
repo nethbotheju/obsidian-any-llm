@@ -17,6 +17,23 @@ export function resolveRef(app: App, path: string): TFile | null {
   return file && isReferenceable(file) ? file : null;
 }
 
+export function resolveLinkPath(app: App, linkpath: string): TFile | null {
+  return app.metadataCache.getFirstLinkpathDest(linkpath, "") ?? null;
+}
+
+// Obsidian's file-explorer drag carries an obsidian://open?vault=…&file=<linkpath>
+// URI in text/plain; the `file` param is URL-encoded and (for notes) lacks the
+// .md extension, so it resolves as a linkpath, not a raw vault path.
+export function parseObsidianFileUri(uri: string): string | null {
+  if (!uri.startsWith("obsidian://")) return null;
+  try {
+    const file = new URL(uri).searchParams.get("file");
+    return file && file.length ? file : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function readRef(app: App, file: TFile): Promise<string> {
   return app.vault.cachedRead(file);
 }

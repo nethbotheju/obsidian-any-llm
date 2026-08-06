@@ -14,7 +14,7 @@ import {
   supportedAttachmentModalities,
   type PendingAttachment,
 } from "../attachments";
-import { isReferenceable, referenceableFiles } from "../refs";
+import { isReferenceable, parseObsidianFileUri, referenceableFiles, resolveLinkPath } from "../refs";
 
 const BINARY_MIME: Record<string, string> = {
   png: "image/png",
@@ -205,12 +205,12 @@ export function Composer({
       }}
       onDrop={(e) => {
         e.preventDefault();
-        // ponytail: Obsidian's file-explorer drag is expected to expose the
-        // vault path via text/plain; verify empirically on first run and fall
-        // back to workspace drag hooks if the payload differs. OS drags fill
-        // dataTransfer.files.
-        const droppedPath = e.dataTransfer.getData("text/plain");
-        const tf = droppedPath ? app.vault.getFileByPath(droppedPath) : null;
+        // Internal file-explorer drags carry an obsidian://open?…&file=<linkpath>
+        // URI in text/plain (no extension for notes); OS/Finder drags fill
+        // dataTransfer.files. Resolve either to a TFile, else attach raw files.
+        const payload = e.dataTransfer.getData("text/plain");
+        const linkpath = payload.startsWith("obsidian://") ? parseObsidianFileUri(payload) : payload || null;
+        const tf = linkpath ? (app.vault.getFileByPath(linkpath) ?? resolveLinkPath(app, linkpath)) : null;
         if (tf) {
           if (isReferenceable(tf)) insertRef(tf);
           else void attachTFile(tf);
