@@ -101,6 +101,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 14px 8px;
   display: flex;
   flex-direction: column;
@@ -119,6 +120,7 @@
   padding: 9px 13px;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.5;
   -webkit-user-select: text;
   user-select: text;
@@ -549,6 +551,8 @@
   line-height: 1.6;
   -webkit-user-select: text;
   user-select: text;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-md > :first-child { margin-top: 0; }
 .ai-chat-md > :last-child { margin-bottom: 0; }
@@ -874,6 +878,7 @@
 .ai-chat-user-text {
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-bubble-user .ai-chat-message-attachment {
   max-width: 280px;
@@ -948,6 +953,10 @@
   font: inherit;
   cursor: pointer;
   text-decoration: none;
+  white-space: pre-wrap !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 .ai-chat-ref:hover {
   text-decoration: underline;
