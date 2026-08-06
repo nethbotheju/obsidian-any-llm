@@ -291,6 +291,7 @@
 
 /* ---------- Composer ---------- */
 .ai-chat-composer-wrap {
+  position: relative;
   flex: 0 0 auto;
   padding: 6px 12px 12px;
   background: var(--background-primary);
@@ -876,4 +877,86 @@
 }
 .ai-chat-bubble-user .ai-chat-message-attachment {
   max-width: 280px;
+}
+
+/* ---------- File reference picker ---------- */
+.ai-chat-filepicker-anchor {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  animation: ai-chat-pop 0.12s ease;
+}
+.ai-chat-filepicker {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border-hover);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-s);
+}
+.ai-chat-filepicker-folder {
+  padding: 6px 8px 2px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+.ai-chat-filepicker-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 4px 16px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  font-size: var(--font-small);
+  color: var(--text-normal);
+}
+.ai-chat-filepicker-item:hover {
+  background: var(--background-modifier-hover);
+}
+.ai-chat-filepicker-item.is-selected {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+}
+.ai-chat-filepicker-name {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-chat-filepicker-empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-small);
+}
+.ai-chat-filepicker::-webkit-scrollbar {
+  width: 8px;
+}
+.ai-chat-filepicker::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg, var(--background-modifier-border));
+  border-radius: 4px;
+}
+
+/* ---------- Inline file references ---------- */
+.ai-chat-ref {
+  display: inline;
+  margin: 0 1px;
+  padding: 0 3px;
+  border: none !important;
+  background: var(--background-modifier-hover) !important;
+  color: var(--text-accent) !important;
+  font: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.ai-chat-ref:hover {
+  background: var(--background-modifier-border) !important;
+  text-decoration: underline;
+}
+.ai-chat-ref-broken {
+  color: var(--text-error) !important;
+  text-decoration: line-through;
+  cursor: not-allowed;
 }

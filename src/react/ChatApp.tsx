@@ -13,6 +13,7 @@ import { describeChatError, streamChat } from "../llm";
 import { deleteConversation, listConversations, saveConversation } from "../store";
 import type { ChatMessage, Conversation } from "../types";
 import { serializeFiles } from "../attachments";
+import { collectRefContents } from "../refs";
 import { newId, nowISO, titleFrom } from "../util";
 
 function newConversation(model: string, systemPrompt: string): Conversation {
@@ -77,10 +78,20 @@ export function ChatApp() {
           throw new Error("The selected model is no longer available. Pick another model in Settings.");
         }
 
+        const userMsgs = conv.messages.filter((m) => m.role === "user");
+        const lastText = userMsgs.length ? userMsgs[userMsgs.length - 1].content : "";
+        const olderText = userMsgs.slice(0, -1).map((m) => m.content).join("\n");
+        const latest = await collectRefContents(app, lastText);
+        if (latest.errors.length) throw new Error(latest.errors.join(" "));
+        const older = await collectRefContents(app, olderText);
+        const fileContents = new Map(latest.contents);
+        for (const [k, v] of older.contents) fileContents.set(k, v);
+
         const full = await streamChat({
           model,
           system: conv.systemPrompt,
           messages: conv.messages,
+          fileContents,
           signal: controller.signal,
           onDelta: (t) => {
             setStreamText(t);
@@ -108,7 +119,7 @@ export function ChatApp() {
         abortRef.current = null;
       }
     },
-    [persist, plugin],
+    [app, persist, plugin],
   );
 
   const send = useCallback(

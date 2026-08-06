@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Icon, Markdown, copyText } from "./common";
+import { Notice } from "obsidian";
+import { Icon, Markdown, copyText, useServices } from "./common";
 import { attachmentDataUrl, formatAttachmentSize } from "../attachments";
+import { resolveRef, splitRefs } from "../refs";
 import type { ChatAttachment, ChatMessage } from "../types";
 
 export type MessageState = "complete" | "streaming" | "waiting";
@@ -35,11 +37,42 @@ function AttachmentView({ attachment }: { attachment: ChatAttachment }) {
   );
 }
 
+function RefChip({ path }: { path: string }) {
+  const { app } = useServices();
+  const exists = !!resolveRef(app, path);
+  const open = () => {
+    const file = resolveRef(app, path);
+    if (file) void app.workspace.getLeaf(false).openFile(file);
+    else new Notice(`Couldn't find "${path}" in the vault.`);
+  };
+  return (
+    <button
+      type="button"
+      className={`ai-chat-ref${exists ? "" : " ai-chat-ref-broken"}`}
+      onClick={open}
+      title={exists ? `Open ${path}` : `"${path}" no longer exists`}
+    >
+      @{path}
+    </button>
+  );
+}
+
 function UserContent({ msg }: { msg: ChatMessage }) {
+  const runs = splitRefs(msg.content);
   return (
     <div className="ai-chat-bubble-user">
       {msg.attachments?.map((attachment) => <AttachmentView key={attachment.id} attachment={attachment} />)}
-      {msg.content && <div className="ai-chat-user-text">{msg.content}</div>}
+      {runs.length > 0 && (
+        <div className="ai-chat-user-text">
+          {runs.map((r, i) =>
+            r.kind === "text" ? (
+              <span key={i}>{r.text}</span>
+            ) : (
+              <RefChip key={i} path={r.path} />
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }
