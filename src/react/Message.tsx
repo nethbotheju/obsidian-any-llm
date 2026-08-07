@@ -111,10 +111,8 @@ export function Message({
   if (state === "streaming") {
     return (
       <div className="ai-chat-turn ai-chat-turn-assistant">
-        <div className="ai-chat-md ai-chat-streaming">
-          {msg.content}
-          <span className="ai-chat-caret" />
-        </div>
+        <Markdown content={msg.content} />
+        <span className="ai-chat-caret" />
       </div>
     );
   }

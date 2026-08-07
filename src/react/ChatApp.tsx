@@ -88,6 +88,7 @@ export function ChatApp() {
         const fileContents = new Map(latest.contents);
         for (const [k, v] of older.contents) fileContents.set(k, v);
 
+        let lastFlush = 0;
         const full = await streamChat({
           model,
           system: conv.systemPrompt,
@@ -95,6 +96,11 @@ export function ChatApp() {
           fileContents,
           signal: controller.signal,
           onDelta: (t) => {
+            // ponytail: throttle Obsidian markdown re-render to ~10fps. The
+            // final text is always shown via the complete message when done.
+            const now = Date.now();
+            if (now - lastFlush < 100) return;
+            lastFlush = now;
             setStreamText(t);
           },
         });

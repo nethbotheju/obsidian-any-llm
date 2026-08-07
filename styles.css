@@ -163,14 +163,6 @@
   width: 15px;
   height: 15px;
 }
-
-/* streaming text */
-.ai-chat-streaming {
-  white-space: pre-wrap;
-  word-break: break-word;
-  -webkit-user-select: text;
-  user-select: text;
-}
 .ai-chat-caret {
   display: inline-block;
   width: 7px;
