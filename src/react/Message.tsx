@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Icon, Markdown, copyText } from "./common";
+import { Icon, Markdown, copyText, useServices } from "./common";
 import { attachmentDataUrl, formatAttachmentSize } from "../attachments";
+import { resolveRef, splitRefs } from "../refs";
 import type { ChatAttachment, ChatMessage } from "../types";
 
 export type MessageState = "complete" | "streaming" | "waiting";
@@ -35,11 +36,38 @@ function AttachmentView({ attachment }: { attachment: ChatAttachment }) {
   );
 }
 
+function RefChip({ path }: { path: string }) {
+  const { app } = useServices();
+  const file = resolveRef(app, path);
+  if (!file) return <>{`@${path}`}</>;
+  return (
+    <button
+      type="button"
+      className="ai-chat-ref"
+      onClick={() => void app.workspace.getLeaf(false).openFile(file)}
+      title={`Open ${path}`}
+    >
+      @{path}
+    </button>
+  );
+}
+
 function UserContent({ msg }: { msg: ChatMessage }) {
+  const runs = splitRefs(msg.content);
   return (
     <div className="ai-chat-bubble-user">
       {msg.attachments?.map((attachment) => <AttachmentView key={attachment.id} attachment={attachment} />)}
-      {msg.content && <div className="ai-chat-user-text">{msg.content}</div>}
+      {runs.length > 0 && (
+        <div className="ai-chat-user-text">
+          {runs.map((r, i) =>
+            r.kind === "text" ? (
+              <span key={i}>{r.text}</span>
+            ) : (
+              <RefChip key={i} path={r.path} />
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -101,6 +101,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 14px 8px;
   display: flex;
   flex-direction: column;
@@ -119,6 +120,7 @@
   padding: 9px 13px;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.5;
   -webkit-user-select: text;
   user-select: text;
@@ -291,6 +293,7 @@
 
 /* ---------- Composer ---------- */
 .ai-chat-composer-wrap {
+  position: relative;
   flex: 0 0 auto;
   padding: 6px 12px 12px;
   background: var(--background-primary);
@@ -329,6 +332,9 @@
   min-height: 24px;
   max-height: 160px;
   overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-input::placeholder {
   color: var(--text-faint);
@@ -548,6 +554,8 @@
   line-height: 1.6;
   -webkit-user-select: text;
   user-select: text;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-md > :first-child { margin-top: 0; }
 .ai-chat-md > :last-child { margin-bottom: 0; }
@@ -873,7 +881,114 @@
 .ai-chat-user-text {
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-bubble-user .ai-chat-message-attachment {
   max-width: 280px;
+}
+
+/* ---------- File reference picker ---------- */
+.ai-chat-filepicker-anchor {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  animation: ai-chat-pop 0.12s ease;
+}
+.ai-chat-filepicker {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border-hover);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-s);
+}
+.ai-chat-filepicker-folder {
+  padding: 6px 8px 2px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+.ai-chat-filepicker-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 4px 16px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  font-size: var(--font-small);
+  color: var(--text-normal);
+}
+.ai-chat-filepicker-item:hover {
+  background: var(--background-modifier-hover);
+}
+.ai-chat-filepicker-item.is-selected {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+}
+.ai-chat-filepicker-name {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-chat-filepicker-empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-small);
+}
+.ai-chat-filepicker::-webkit-scrollbar {
+  width: 8px;
+}
+.ai-chat-filepicker::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg, var(--background-modifier-border));
+  border-radius: 4px;
+}
+
+/* ---------- Inline file references ---------- */
+.ai-chat-ref {
+  display: inline;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-accent) !important;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: pre-wrap !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.ai-chat-ref:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Composer: inline reference highlight overlay ---------- */
+.ai-chat-input-wrap {
+  position: relative;
+}
+.ai-chat-input-mirror {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  z-index: 0;
+  color: var(--text-normal);
+}
+/* invisible but space-reserving scrollbar so the mirror reserves the same
+   width as the real textarea when it scrolls, keeping wraps aligned */
+.ai-chat-input-mirror::-webkit-scrollbar-thumb,
+.ai-chat-input-mirror::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ai-chat-input-real {
+  position: relative;
+  z-index: 1;
+  color: transparent !important;
+  caret-color: var(--text-normal);
+}
+.ai-chat-input-ref {
+  color: var(--text-accent);
 }

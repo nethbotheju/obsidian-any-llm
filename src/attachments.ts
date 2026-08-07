@@ -7,7 +7,7 @@ export const MAX_MESSAGE_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 5;
 
 const modalities: AttachmentModality[] = ["text", "image", "audio", "video", "pdf"];
-const textExtensions = new Set([
+export const textExtensions = new Set([
   "c", "cc", "cfg", "conf", "cpp", "css", "csv", "go", "h", "hpp", "html", "ini", "java",
   "js", "json", "jsx", "log", "md", "mdx", "py", "rb", "rs", "scss", "sh", "sql", "toml",
   "ts", "tsx", "txt", "xml", "yaml", "yml",
