@@ -26,7 +26,7 @@ jobs:
       - uses: nethbotheju/ai-code-review@v1
         with:
           api-type: openai-chat-compatible
-          model: minimax-m3
-          base-url: 'https://opencode.ai/zen/go/v1'
+          model: glm-5.2
+          base-url: 'https://api.z.ai/api/coding/paas/v4'
           api-key: ${{ secrets.AI_CODE_REVIEW_LLM_API_KEY }}
           review-mode: agent
