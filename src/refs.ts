@@ -141,8 +141,10 @@ export async function collectRefContents(app: App, text: string): Promise<RefRes
     }
     total += body.length;
     if (total > MAX_TOTAL_REF_BYTES) {
+      // Once over budget no later file can fit; stop to avoid one identical
+      // error per remaining reference.
       errors.push(`File references exceed the ${formatAttachmentSize(MAX_TOTAL_REF_BYTES)} limit.`);
-      continue;
+      break;
     }
     contents.set(r.path, body);
   }
