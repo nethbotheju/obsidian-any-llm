@@ -112,7 +112,6 @@ export function Message({
     return (
       <div className="ai-chat-turn ai-chat-turn-assistant">
         <Markdown content={msg.content} />
-        <span className="ai-chat-caret" />
       </div>
     );
   }

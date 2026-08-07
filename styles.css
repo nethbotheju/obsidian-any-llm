@@ -163,19 +163,6 @@
   width: 15px;
   height: 15px;
 }
-.ai-chat-caret {
-  display: inline-block;
-  width: 7px;
-  height: 1.05em;
-  margin-left: 2px;
-  background: var(--text-normal);
-  vertical-align: text-bottom;
-  animation: ai-chat-blink 1s steps(2, start) infinite;
-}
-@keyframes ai-chat-blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
 
 /* waiting dots */
 .ai-chat-dots {
