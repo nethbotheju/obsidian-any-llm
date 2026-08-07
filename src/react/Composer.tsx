@@ -152,7 +152,10 @@ export function Composer({
     const el = ref.current;
     const caret = el?.selectionStart ?? value.length;
     const refText = /\s/.test(file.path) ? `@[${file.path}]` : `@${file.path}`;
-    const before = value.slice(0, picker.anchor);
+    // picker.anchor only points at the `@query` span when the picker is open;
+    // on closed-picker drag-drops there's nothing to replace, so insert at caret.
+    const start = picker.open ? picker.anchor : caret;
+    const before = value.slice(0, start);
     const after = value.slice(caret);
     const next = before + refText + " " + after;
     setValue(next);
