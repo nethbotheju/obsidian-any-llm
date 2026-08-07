@@ -332,6 +332,9 @@
   min-height: 24px;
   max-height: 160px;
   overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .ai-chat-input::placeholder {
   color: var(--text-faint);
@@ -977,9 +980,6 @@
   overflow: auto;
   pointer-events: none;
   z-index: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
   color: var(--text-normal);
 }
 /* invisible but space-reserving scrollbar so the mirror reserves the same

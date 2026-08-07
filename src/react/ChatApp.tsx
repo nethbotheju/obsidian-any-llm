@@ -84,6 +84,7 @@ export function ChatApp() {
         const latest = await collectRefContents(app, lastText);
         if (latest.errors.length) throw new Error(latest.errors.join(" "));
         const older = await collectRefContents(app, olderText);
+        if (older.errors.length) new Notice(older.errors.join(" "));
         const fileContents = new Map(latest.contents);
         for (const [k, v] of older.contents) fileContents.set(k, v);
 
