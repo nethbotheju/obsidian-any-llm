@@ -964,11 +964,6 @@
 .ai-chat-ref:hover {
   text-decoration: underline;
 }
-.ai-chat-ref-broken {
-  color: var(--text-error) !important;
-  text-decoration: line-through;
-  cursor: not-allowed;
-}
 
 /* ---------- Composer: inline reference highlight overlay ---------- */
 .ai-chat-input-wrap {

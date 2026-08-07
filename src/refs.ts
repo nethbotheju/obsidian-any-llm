@@ -124,10 +124,7 @@ export async function collectRefContents(app: App, text: string): Promise<RefRes
   for (const r of findRefs(text)) {
     if (contents.has(r.path)) continue;
     const file = resolveRef(app, r.path);
-    if (!file) {
-      errors.push(`Couldn't find "${r.path}".`);
-      continue;
-    }
+    if (!file) continue; // unresolved @token is plain text, not a failed ref (see findRefs)
     let body: string;
     try {
       body = await readRef(app, file);

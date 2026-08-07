@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Notice } from "obsidian";
 import { Icon, Markdown, copyText, useServices } from "./common";
 import { attachmentDataUrl, formatAttachmentSize } from "../attachments";
 import { resolveRef, splitRefs } from "../refs";
@@ -39,18 +38,14 @@ function AttachmentView({ attachment }: { attachment: ChatAttachment }) {
 
 function RefChip({ path }: { path: string }) {
   const { app } = useServices();
-  const exists = !!resolveRef(app, path);
-  const open = () => {
-    const file = resolveRef(app, path);
-    if (file) void app.workspace.getLeaf(false).openFile(file);
-    else new Notice(`Couldn't find "${path}" in the vault.`);
-  };
+  const file = resolveRef(app, path);
+  if (!file) return <>{`@${path}`}</>;
   return (
     <button
       type="button"
-      className={`ai-chat-ref${exists ? "" : " ai-chat-ref-broken"}`}
-      onClick={open}
-      title={exists ? `Open ${path}` : `"${path}" no longer exists`}
+      className="ai-chat-ref"
+      onClick={() => void app.workspace.getLeaf(false).openFile(file)}
+      title={`Open ${path}`}
     >
       @{path}
     </button>
