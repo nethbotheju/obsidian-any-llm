@@ -88,6 +88,7 @@ export function ChatApp() {
         const fileContents = new Map(latest.contents);
         for (const [k, v] of older.contents) fileContents.set(k, v);
 
+        let lastFlush = 0;
         const full = await streamChat({
           model,
           system: conv.systemPrompt,
@@ -95,6 +96,11 @@ export function ChatApp() {
           fileContents,
           signal: controller.signal,
           onDelta: (t) => {
+            // ponytail: throttle Obsidian markdown re-render to ~10fps. The
+            // final text is always shown via the complete message when done.
+            const now = Date.now();
+            if (now - lastFlush < 100) return;
+            lastFlush = now;
             setStreamText(t);
           },
         });
@@ -103,13 +109,16 @@ export function ChatApp() {
           messages: [...conv.messages, { role: "assistant", content: full, model: conv.model }],
           updatedAt: nowISO(),
         };
-        setActive(next);
         try {
           await persist(next);
         } catch (err) {
           console.error("ai-chat: could not save response", err);
           new Notice(`Could not save conversation: ${err instanceof Error ? err.message : String(err)}`);
         }
+        // setActive after persist so it batches with the finally's
+        // setStreaming(false) — otherwise the completed message and the live
+        // streaming item both render together (a duplicate flash).
+        setActive(next);
       } catch (err) {
         if (controller.signal.aborted) return;
         setError(describeChatError(err));

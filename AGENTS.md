@@ -86,6 +86,7 @@ src/
 - Use Obsidian's own APIs over reinvention: `MarkdownRenderer` for markdown, `setIcon`/`addIcon` for icons, `requestUrl` for network when `fetch` fails, `vault.adapter` for file IO. Render markdown via the `<Markdown>` component in `common.tsx`.
 - Minimal comments. Reserve `ponytail:` comments for deliberate simplifications that cut a corner with a known ceiling (note the ceiling + upgrade path).
 - No unrequested abstractions. Reuse existing helpers in `util.ts` / `common.tsx` before writing new ones.
+- When making changes or enhancements, remove any code left unused by the change — dead CSS classes, orphaned helpers, unused imports, stale comments. Clean it up in the same change; don't leave it for later.
 
 ## Build & Deployment
 
