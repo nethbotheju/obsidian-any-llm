@@ -109,13 +109,16 @@ export function ChatApp() {
           messages: [...conv.messages, { role: "assistant", content: full, model: conv.model }],
           updatedAt: nowISO(),
         };
-        setActive(next);
         try {
           await persist(next);
         } catch (err) {
           console.error("ai-chat: could not save response", err);
           new Notice(`Could not save conversation: ${err instanceof Error ? err.message : String(err)}`);
         }
+        // setActive after persist so it batches with the finally's
+        // setStreaming(false) — otherwise the completed message and the live
+        // streaming item both render together (a duplicate flash).
+        setActive(next);
       } catch (err) {
         if (controller.signal.aborted) return;
         setError(describeChatError(err));
