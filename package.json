@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-ai-chat",
+  "name": "any-llm",
   "version": "0.1.0",
   "description": "Multi-provider AI chat assistant plugin for Obsidian",
   "main": "main.js",

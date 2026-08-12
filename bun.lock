@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "obsidian-ai-chat",
+      "name": "any-llm",
       "dependencies": {
         "@ai-sdk/anthropic": "4.0.23",
         "@ai-sdk/google": "4.0.27",
