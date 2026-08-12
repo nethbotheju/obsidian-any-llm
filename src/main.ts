@@ -25,10 +25,10 @@ export default class AIChatPlugin extends Plugin {
 
     this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
 
-    this.addRibbonIcon("message-square", "Open AI Chat", () => this.activateView());
+    this.addRibbonIcon("message-square", "Open AnyLLM", () => this.activateView());
     this.addCommand({
       id: "open-chat",
-      name: "Open AI Chat",
+      name: "Open AnyLLM",
       callback: () => this.activateView(),
     });
 

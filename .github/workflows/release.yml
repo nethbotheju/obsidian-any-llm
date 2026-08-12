@@ -1,0 +1,28 @@
+name: release
+
+# Tag must equal manifest.json `version` (no "v"); Obsidian installs from these release assets.
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Attach plugin assets to release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            main.js
+            manifest.json
+            styles.css

@@ -2,7 +2,7 @@
    AI Chat — theme-safe via Obsidian CSS variables
    ============================================================ */
 
-.obsidian-ai-chat-view-content {
+.any-llm-view-content {
   padding: 0 0 var(--status-bar-height, 22px) 0 !important;
   display: flex;
   flex-direction: column;
