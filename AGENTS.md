@@ -23,16 +23,16 @@ bun run dev      # esbuild watch -> ./main.js (inline sourcemaps)
 bun run build    # one-shot production build (minified, no sourcemaps)
 ```
 
-To test in Obsidian, copy the three plugin files into your vault:
+Test in the demo vault **Biology Vault** (repo root, gitignored): its plugin files are symlinks to the
+build outputs, so `bun run build` (or `bun run dev`) updates it directly. The vault runs the **hot-reload**
+plugin (any-llm dir has a `.hotreload` marker), which auto-reloads `main.js`/`styles.css` changes — no
+copying, no restart needed. Only `manifest.json` changes need a manual restart:
 
+```bash
+osascript -e 'quit app "Obsidian"' 2>/dev/null
+while pgrep -x Obsidian >/dev/null; do sleep 0.2; done
+open "obsidian://open?path=$PWD/Biology%20Vault"
 ```
-<vault>/.obsidian/plugins/any-llm/
-├── main.js
-├── manifest.json
-└── styles.css
-```
-
-Then enable the plugin and run the **AnyLLM: Open** command (or click the ribbon icon). For fast iteration, symlink the build output (`main.js`) into the vault's plugin dir so `bun run dev` live-reloads.
 
 Type-check only (no emit — `tsconfig.json` has `noEmit`):
 
@@ -41,8 +41,6 @@ bunx tsc --noEmit
 ```
 
 ## Testing
-
-**There is no test suite, test runner, or lint/format config in this repo.** Don't invent commands.
 
 - When adding non-trivial logic, prefer a small runnable self-check (e.g. an `assert`-based `demo()` / `__main__` block, or a `test_*.ts` file) over scaffolding a framework.
 - Always verify with `bunx tsc --noEmit` after structural changes — it's the only automated gate right now.
