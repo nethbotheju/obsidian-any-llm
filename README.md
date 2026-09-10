@@ -13,7 +13,7 @@ Chat with OpenAI, Anthropic, and Gemini — plus 10 more providers and custom Op
 
 *Desktop only — currently in beta.*
 
-[![release](https://img.shields.io/github/v/release/nethbotheju/obsidian-ai-plugin?include_prereleases&label=release&style=flat-square)](https://github.com/nethbotheju/obsidian-ai-plugin/releases)
+[![release](https://img.shields.io/github/v/release/nethbotheju/obsidian-any-llm?include_prereleases&label=release&style=flat-square)](https://github.com/nethbotheju/obsidian-any-llm/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-1.4.0%2B-7C3AED?style=flat-square)](https://obsidian.md)
 ![status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
@@ -41,10 +41,10 @@ Chat with OpenAI, Anthropic, and Gemini — plus 10 more providers and custom Op
 AnyLLM is in beta and distributed via [BRAT](https://github.com/TfTHacker/obsidian42-brat):
 
 1. Install and enable the **BRAT** community plugin.
-2. BRAT settings → **Add Beta plugin** → enter `nethbotheju/obsidian-ai-plugin`.
+2. BRAT settings → **Add Beta plugin** → enter `nethbotheju/obsidian-any-llm`.
 3. BRAT installs AnyLLM from the latest GitHub release. Enable it, then run **AnyLLM: Open** (or click the ribbon icon).
 
-_Ran into trouble or found a bug? [Open an issue](https://github.com/nethbotheju/obsidian-ai-plugin/issues)._
+_Ran into trouble or found a bug? [Open an issue](https://github.com/nethbotheju/obsidian-any-llm/issues)._
 
 ## In action
 
@@ -72,7 +72,7 @@ ChatGPT Plus/Pro, Claude Pro/Max — no API key needed.
 **Local / custom**
 Ollama ships preconfigured. For anything else — LM Studio, your own server, or any OpenAI-compatible endpoint — choose **Custom (OpenAI-compatible)** from the provider dropdown, then set a Base URL and list your model ids.
 
-_Need a provider that isn't listed? [Open an issue](https://github.com/nethbotheju/obsidian-ai-plugin/issues) and we'll look into adding it._
+_Need a provider that isn't listed? [Open an issue](https://github.com/nethbotheju/obsidian-any-llm/issues) and we'll look into adding it._
 
 ## Contributing
 
