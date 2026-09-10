@@ -136,6 +136,7 @@ export interface StreamOptions {
   system?: string;
   messages: ChatMessage[];
   fileContents?: Map<string, string>;
+  headers?: Record<string, string>;
   onDelta: (full: string) => void;
   signal?: AbortSignal;
 }
@@ -233,6 +234,7 @@ export async function streamChat(opts: StreamOptions): Promise<string> {
     model: opts.model,
     system: opts.system,
     messages,
+    headers: opts.headers,
     abortSignal: opts.signal,
     onError: ({ error }) => {
       streamError ??= error;

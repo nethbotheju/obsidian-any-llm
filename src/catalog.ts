@@ -52,6 +52,18 @@ export function isChatModel(output: string[] | undefined): boolean {
   return !!output && output.includes("text");
 }
 
+// OpenCode Go rejects requests without a stable per-conversation session id
+// ("missing x-opencode-session and cannot be routed efficiently"). The header
+// also lets it pin a conversation to one backend for prompt caching.
+export function opencodeSessionHeaders(
+  providerId: string | undefined,
+  sessionId: string,
+): Record<string, string> {
+  return providerId === "opencode-go"
+    ? { "x-opencode-session": sessionId }
+    : {};
+}
+
 export interface UsableProvider {
   providerId: string;
   apiKey?: string;
