@@ -11,7 +11,8 @@ import { MessageState } from "./Message";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { describeChatError, streamChat } from "../llm";
 import { deleteConversation, listConversations, saveConversation } from "../store";
-import type { ChatMessage, Conversation } from "../types";
+import { parseModelRef, type ChatMessage, type Conversation } from "../types";
+import { opencodeSessionHeaders } from "../catalog";
 import { serializeFiles } from "../attachments";
 import { collectRefContents } from "../refs";
 import { newId, nowISO, titleFrom } from "../util";
@@ -78,6 +79,9 @@ export function ChatApp() {
           throw new Error("The selected model is no longer available. Pick another model in Settings.");
         }
 
+        const provider = plugin.settings.providers.find((p) => p.id === parseModelRef(conv.model).providerId);
+        const headers = opencodeSessionHeaders(provider?.providerId, conv.id);
+
         const userMsgs = conv.messages.filter((m) => m.role === "user");
         const lastText = userMsgs.length ? userMsgs[userMsgs.length - 1].content : "";
         const olderText = userMsgs.slice(0, -1).map((m) => m.content).join("\n");
@@ -94,6 +98,7 @@ export function ChatApp() {
           system: conv.systemPrompt,
           messages: conv.messages,
           fileContents,
+          headers,
           signal: controller.signal,
           onDelta: (t) => {
             // ponytail: throttle Obsidian markdown re-render to ~10fps. The
