@@ -67,6 +67,8 @@ OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek, Groq, Mistral, xAI (Grok)
 **Subscription sign-in (OAuth)**
 ChatGPT Plus/Pro, Claude Pro/Max — no API key needed.
 
+> **Note:** Subscription-based sign-in (ChatGPT and Claude) has not been tested yet, and its compatibility is currently unverified. If you encounter any issues with any provider, please [open an issue](https://github.com/nethbotheju/obsidian-ai-plugin/issues) with the relevant details so we can investigate and address it.
+
 **Local / custom**
 Ollama ships preconfigured. For anything else — LM Studio, your own server, or any OpenAI-compatible endpoint — choose **Custom (OpenAI-compatible)** from the provider dropdown, then set a Base URL and list your model ids.
 
