@@ -3,10 +3,10 @@ import { ChatView, VIEW_TYPE_CHAT } from "./ChatView";
 import { ChatSettingTab } from "./settings-tab";
 import { DEFAULT_SETTINGS } from "./store";
 import { buildRegistry } from "./llm";
-import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
+import { CATALOG_BY_ID, providerUsable, type ModelInfo } from "./catalog";
 import { readCache, readLogoCache, syncLogos, syncProviders, type LogoCache, type ModelCache } from "./sync";
 import { OAUTH_SPECS, isTokenFresh, refreshAccessToken } from "./auth/oauth";
-import { parseModelRef, type PluginSettings, type ProviderConfig, type StoredToken } from "./types";
+import { modelRef, parseModelRef, type PluginSettings, type ProviderConfig, type StoredToken } from "./types";
 
 const LOGO_ICON_PREFIX = "models-dev-";
 
@@ -17,6 +17,7 @@ export default class AIChatPlugin extends Plugin {
   logoCache: LogoCache = {};
   private revision = 0;
   private listeners = new Set<() => void>();
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -97,9 +98,15 @@ export default class AIChatPlugin extends Plugin {
 
   getRevision = (): number => this.revision;
 
+  // Coalesce bursts: saveSettings fires on every settings keystroke, and
+  // re-rendering the whole chat per keystroke is wasteful.
   private notifyChanged(): void {
-    this.revision++;
-    for (const listener of this.listeners) listener();
+    if (this.notifyTimer !== null) clearTimeout(this.notifyTimer);
+    this.notifyTimer = setTimeout(() => {
+      this.notifyTimer = null;
+      this.revision++;
+      for (const listener of this.listeners) listener();
+    }, 150);
   }
 
   getModels(p: ProviderConfig): ModelInfo[] {
@@ -121,6 +128,28 @@ export default class AIChatPlugin extends Plugin {
     const { providerId, modelId } = parseModelRef(ref);
     const provider = this.settings.providers.find((p) => p.id === providerId);
     return provider ? this.getModels(provider).find((m) => m.id === modelId) : undefined;
+  }
+
+  // True when ref still resolves to a model the picker would offer. Credentials
+  // are only checked for OAuth providers: API key fields are edited keystroke
+  // by keystroke and are transiently empty, which shouldn't reset the chat.
+  isModelAvailable(ref: string): boolean {
+    const { providerId, modelId } = parseModelRef(ref);
+    if (!providerId || !modelId) return false;
+    const provider = this.settings.providers.find((p) => p.id === providerId);
+    if (!provider) return false;
+    if (CATALOG_BY_ID[provider.providerId]?.authType === "oauth" && !provider.token) return false;
+    return this.getModels(provider).some((m) => m.id === modelId);
+  }
+
+  // First model the picker would offer, or "" when nothing is available.
+  firstAvailableModel(): string {
+    for (const p of this.settings.providers) {
+      if (!providerUsable(p)) continue;
+      const model = this.getModels(p)[0];
+      if (model) return modelRef(p.id, model.id);
+    }
+    return "";
   }
 
   async syncAll(): Promise<void> {

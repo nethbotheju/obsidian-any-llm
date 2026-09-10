@@ -33,7 +33,7 @@ export function ChatApp() {
   const { app, plugin } = useServices();
   // Re-render when the settings tab mutates settings, the registry, or the
   // model cache — otherwise the open chat keeps showing stale providers.
-  useSyncExternalStore(plugin.subscribe, plugin.getRevision);
+  const revision = useSyncExternalStore(plugin.subscribe, plugin.getRevision);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -63,6 +63,16 @@ export function ChatApp() {
     },
     [app, plugin],
   );
+
+  // If the provider/model set changed under an open conversation (e.g. a
+  // provider was deleted or signed out), retarget it at a model that still
+  // exists instead of failing at send time.
+  useEffect(() => {
+    if (!active?.model || plugin.isModelAvailable(active.model)) return;
+    const conv = { ...active, model: plugin.firstAvailableModel() };
+    setActive(conv);
+    void persist(conv);
+  }, [revision, active, plugin, persist]);
 
   const streamAssistant = useCallback(
     async (conv: Conversation) => {
