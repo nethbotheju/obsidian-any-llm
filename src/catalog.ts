@@ -52,14 +52,14 @@ export function isChatModel(output: string[] | undefined): boolean {
   return !!output && output.includes("text");
 }
 
-// OpenCode Zen/Go reject requests without a stable per-conversation session id
+// OpenCode Go rejects requests without a stable per-conversation session id
 // ("missing x-opencode-session and cannot be routed efficiently"). The header
-// also lets them pin a conversation to one backend for prompt caching.
+// also lets it pin a conversation to one backend for prompt caching.
 export function opencodeSessionHeaders(
   providerId: string | undefined,
   sessionId: string,
 ): Record<string, string> {
-  return providerId === "opencode-go" || providerId === "opencode"
+  return providerId === "opencode-go"
     ? { "x-opencode-session": sessionId }
     : {};
 }
