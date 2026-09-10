@@ -64,15 +64,17 @@ export function ChatApp() {
     [app, plugin],
   );
 
-  // If the provider/model set changed under an open conversation (e.g. a
-  // provider was deleted or signed out), retarget it at a model that still
-  // exists instead of failing at send time.
+  // If the provider/model set changed under an open conversation (e.g. the
+  // provider was deleted, signed out, or lost its API key), clear the model so
+  // the composer shows its empty state instead of a stale, unusable selection.
+  // Skipped mid-stream: streamAssistant owns `active` until it finishes, and
+  // this effect re-runs once it does.
   useEffect(() => {
-    if (!active?.model || plugin.isModelAvailable(active.model)) return;
-    const conv = { ...active, model: plugin.firstAvailableModel() };
+    if (streaming || !active?.model || plugin.isModelAvailable(active.model)) return;
+    const conv = { ...active, model: "" };
     setActive(conv);
     void persist(conv);
-  }, [revision, active, plugin, persist]);
+  }, [revision, streaming, active, plugin, persist]);
 
   const streamAssistant = useCallback(
     async (conv: Conversation) => {
