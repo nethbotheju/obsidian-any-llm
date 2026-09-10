@@ -89,8 +89,23 @@ src/
 ## Build & Deployment
 
 - `bun run build` emits the minified `main.js`. Distribute the trio `main.js` + `manifest.json` + `styles.css` (no `node_modules`, no `main.js.map` — it's gitignored).
-- Bump `manifest.json` `version` (and `package.json`) together on releases. `minAppVersion` is `1.4.0`; `isDesktopOnly: true`.
-- No CI/CD pipeline yet — builds are manual.
+- `minAppVersion` is `1.4.0`; `isDesktopOnly: true`.
+
+## Releasing
+
+A release is a version-bump PR followed by a tag push. The bump needs a PR (the `main` ruleset requires one); the tag does not — no tag ruleset exists, so tags push straight to the repo.
+
+1. Bump `version` in `manifest.json` **and** `package.json` together — they must stay in sync. Use a patch bump (`0.1.0` → `0.1.1`) when everything since the last tag is `fix:`/`docs:`/`chore:`/`refactor:`; reserve minor bumps for `feat:`.
+2. Branch `chore/release-<version>` and open a PR. No issue is needed for a release. The ruleset requires zero approvals, so self-merging is fine.
+3. Merge, then `git pull` on `main` and tag **the merge commit** — not the branch commit:
+   ```bash
+   git tag <version>        # no "v" prefix; must equal manifest.json version
+   git push origin <version>
+   ```
+4. The tag push triggers `.github/workflows/release.yml`: `bun install --frozen-lockfile` + `bun run build`, then `main.js`, `manifest.json`, and `styles.css` are attached with generated release notes.
+5. Verify with `gh release view <version>` — all three assets must be present.
+
+Never create a release from the GitHub UI: it attaches no assets (Obsidian and BRAT install only from those three files) and tags whatever `main` currently points at. The workflow neither validates nor syncs versions — a tag disagreeing with `manifest.json` ships a mislabeled release that users never see as an update.
 
 ## Pull Request Guidelines
 
