@@ -964,7 +964,10 @@
 .ai-chat-input-real {
   position: relative;
   z-index: 1;
+  /* visible text lives in the mirror underneath; any opaque background here
+     (e.g. Obsidian's textarea hover/focus styles) would hide it */
   color: transparent !important;
+  background: transparent !important;
   caret-color: var(--text-normal);
 }
 .ai-chat-input-ref {
