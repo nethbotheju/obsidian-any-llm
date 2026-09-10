@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Notice } from "obsidian";
 import type { LanguageModel } from "ai";
 import { copyText, Icon, useServices } from "./common";
@@ -31,6 +31,9 @@ function newConversation(model: string, systemPrompt: string): Conversation {
 
 export function ChatApp() {
   const { app, plugin } = useServices();
+  // Re-render when the settings tab mutates settings, the registry, or the
+  // model cache — otherwise the open chat keeps showing stale providers.
+  useSyncExternalStore(plugin.subscribe, plugin.getRevision);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
   const [streaming, setStreaming] = useState(false);
