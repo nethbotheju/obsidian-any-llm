@@ -3,7 +3,7 @@ import { ChatView, VIEW_TYPE_CHAT } from "./ChatView";
 import { ChatSettingTab } from "./settings-tab";
 import { DEFAULT_SETTINGS } from "./store";
 import { buildRegistry } from "./llm";
-import { CATALOG_BY_ID, type ModelInfo } from "./catalog";
+import { CATALOG_BY_ID, providerUsable, type ModelInfo } from "./catalog";
 import { readCache, readLogoCache, syncLogos, syncProviders, type LogoCache, type ModelCache } from "./sync";
 import { OAUTH_SPECS, isTokenFresh, refreshAccessToken } from "./auth/oauth";
 import { parseModelRef, type PluginSettings, type ProviderConfig, type StoredToken } from "./types";
@@ -15,6 +15,9 @@ export default class AIChatPlugin extends Plugin {
   registry = buildRegistry(DEFAULT_SETTINGS);
   modelCache: ModelCache = {};
   logoCache: LogoCache = {};
+  private revision = 0;
+  private listeners = new Set<() => void>();
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -56,7 +59,10 @@ export default class AIChatPlugin extends Plugin {
     if (ids.length === 0) return;
     const before = Object.keys(this.logoCache).length;
     this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, ids);
-    if (Object.keys(this.logoCache).length !== before) this.registerLogos();
+    if (Object.keys(this.logoCache).length !== before) {
+      this.registerLogos();
+      this.notifyChanged();
+    }
   }
 
   // Returns the Obsidian icon name to use for a provider.
@@ -83,6 +89,26 @@ export default class AIChatPlugin extends Plugin {
     this.registry = buildRegistry(this.settings);
   }
 
+  // The chat view renders from mutable plugin state (settings, registry, model
+  // cache). Views subscribe here and re-render whenever that state changes.
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  getRevision = (): number => this.revision;
+
+  // Coalesce bursts: saveSettings fires on every settings keystroke, and
+  // re-rendering the whole chat per keystroke is wasteful.
+  private notifyChanged(): void {
+    if (this.notifyTimer !== null) clearTimeout(this.notifyTimer);
+    this.notifyTimer = setTimeout(() => {
+      this.notifyTimer = null;
+      this.revision++;
+      for (const listener of this.listeners) listener();
+    }, 150);
+  }
+
   getModels(p: ProviderConfig): ModelInfo[] {
     const cat = CATALOG_BY_ID[p.providerId];
     if (cat?.custom || p.customModels) {
@@ -104,6 +130,16 @@ export default class AIChatPlugin extends Plugin {
     return provider ? this.getModels(provider).find((m) => m.id === modelId) : undefined;
   }
 
+  // True when ref still resolves to a model the picker would offer: its
+  // provider exists, is usable (key or token present), and still lists it.
+  isModelAvailable(ref: string): boolean {
+    const { providerId, modelId } = parseModelRef(ref);
+    if (!providerId || !modelId) return false;
+    const provider = this.settings.providers.find((p) => p.id === providerId);
+    if (!provider || !providerUsable(provider)) return false;
+    return this.getModels(provider).some((m) => m.id === modelId);
+  }
+
   async syncAll(): Promise<void> {
     const unique = this.logoIds();
     if (unique.length === 0) {
@@ -113,12 +149,14 @@ export default class AIChatPlugin extends Plugin {
     this.modelCache = await syncProviders(this.app, this.manifest.id, this.modelCache, unique);
     this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, unique);
     this.registerLogos();
+    this.notifyChanged();
   }
 
   async syncOne(modelsDevId: string): Promise<void> {
     this.modelCache = await syncProviders(this.app, this.manifest.id, this.modelCache, [modelsDevId]);
     this.logoCache = await syncLogos(this.app, this.manifest.id, this.logoCache, [modelsDevId]);
     this.registerLogos();
+    this.notifyChanged();
   }
 
   async loadSettings() {
@@ -128,6 +166,7 @@ export default class AIChatPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.rebuildRegistry();
+    this.notifyChanged();
   }
 
   // Refresh any subscription token that is about to expire, then rebuild the

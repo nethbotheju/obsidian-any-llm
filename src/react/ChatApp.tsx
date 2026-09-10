@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Notice } from "obsidian";
 import type { LanguageModel } from "ai";
 import { copyText, Icon, useServices } from "./common";
@@ -31,6 +31,9 @@ function newConversation(model: string, systemPrompt: string): Conversation {
 
 export function ChatApp() {
   const { app, plugin } = useServices();
+  // Re-render when the settings tab mutates settings, the registry, or the
+  // model cache — otherwise the open chat keeps showing stale providers.
+  const revision = useSyncExternalStore(plugin.subscribe, plugin.getRevision);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -60,6 +63,18 @@ export function ChatApp() {
     },
     [app, plugin],
   );
+
+  // If the provider/model set changed under an open conversation (e.g. the
+  // provider was deleted, signed out, or lost its API key), clear the model so
+  // the composer shows its empty state instead of a stale, unusable selection.
+  // Skipped mid-stream: streamAssistant owns `active` until it finishes, and
+  // this effect re-runs once it does.
+  useEffect(() => {
+    if (streaming || !active?.model || plugin.isModelAvailable(active.model)) return;
+    const conv = { ...active, model: "" };
+    setActive(conv);
+    void persist(conv);
+  }, [revision, streaming, active, plugin, persist]);
 
   const streamAssistant = useCallback(
     async (conv: Conversation) => {
