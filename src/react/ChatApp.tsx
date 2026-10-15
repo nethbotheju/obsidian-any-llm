@@ -208,8 +208,8 @@ export function ChatApp() {
   const startNew = useCallback(() => {
     if (streaming) return;
     setError(null);
-    setActive(newConversation(active?.model || plugin.settings.defaultModel, active?.systemPrompt || plugin.settings.defaultSystemPrompt));
-  }, [streaming, active, plugin.settings.defaultModel, plugin.settings.defaultSystemPrompt]);
+    setActive(newConversation(plugin.settings.defaultModel, plugin.settings.defaultSystemPrompt));
+  }, [streaming, plugin]);
 
   const switchConversation = useCallback(
     (id: string) => {
